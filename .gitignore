@@ -1,0 +1,8 @@
+*.py[cod]
+venv*/
+*.egg-info/
+.idea/workspace.xml
+.idea/dbnavigator.xml
+.cache/
+__pycache__/
+.coverage
