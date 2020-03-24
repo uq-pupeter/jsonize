@@ -1,8 +1,7 @@
 *.py[cod]
 venv*/
 *.egg-info/
-.idea/workspace.xml
-.idea/dbnavigator.xml
+.idea/
 .cache/
 __pycache__/
 .coverage
