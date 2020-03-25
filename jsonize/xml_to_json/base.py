@@ -1,9 +1,22 @@
 from __future__ import annotations
 import xml.etree.ElementTree as etree
-from jsonize.xml.utils import XMLNode, XMLNodeType, XPath
+from jsonize.utils.xml import XMLNode, XMLNodeType, XPath
 from pathlib import Path
-from jsonize.json.utils import JSONNode, JSONNodeType, JSONPath, write_item_in_path
-from typing import Optional, Callable, Dict, Iterable
+from jsonize.utils.json import JSONNode, JSONNodeType, JSONPath, write_item_in_path
+from typing import Optional, Callable, Dict, Iterable, Union
+from jsonize.map_parser import parse, load
+
+class Transformation:
+    """
+    Class containing a named definition of a transformation that is applied onto the value of an XML Node
+    before mapping it into a JSON Node.
+    """
+    def __init__(self, name: str, transformation: Callable):
+        self.name = name
+        self.transformation = transformation
+
+    def __call__(self, input):
+        return self.transformation(input)
 
 
 class XMLNodeToJSONNode:
@@ -102,19 +115,34 @@ class XMLNodeToJSONNode:
             return write_item_in_path(input_value, JSONPath(self.to_json_node.path), json)
 
 
-def xml_document_to_json(mappings: Iterable[XMLNodeToJSONNode], xml_document: Path, xml_namespaces: Dict = None, json: Optional[Dict] = None) -> Dict:
+def xml_document_to_json(xml_document: Path,
+                         jsonize_map_document: Optional[Path]=None, jsonize_map: Optional[Iterable[XMLNodeToJSONNode]]=None,
+                         xml_namespaces: Dict = None, json: Optional[Dict] = None,
+                         transformations: Optional[Iterable[Transformation]]=None) -> Dict:
     """
     Transforms an XML document into a JSON serializable dictionary.
-    :param mappings: An iterable of XMLNodeToJSONNode defining the mappings from each node in the XML document to the JSON file.
+    :param jsonize_map: An iterable of XMLNodeToJSONNode defining the mappings from each node in the XML document to the JSON file.
     :param xml_document: A Path to the XML document that is to be converted.
     :param xml_namespaces: A dictionary defining the XML namespaces with namespace shortname as keys and the full namespace name as values.
     :param json: An input dictionary into which the XML document is to be mapped. Defaults to an empty dictionary if none given.
     :return: A JSON serializable dictionary containing the items defined in the mappings extracted from the xml_document.
     """
+    if transformations is None:
+        transformations = []
+
+    if not jsonize_map:
+        try:
+            assert jsonize_map_document is not None
+        except AssertionError:
+            raise ValueError('Jsonize map missing. Must be provided either via the parameter "jsonize_map_document" or "jsonize_map".')
+        with jsonize_map_document.open('r') as jsonize_map_file:
+            jsonize_map = parse(load(jsonize_map_file), transformations)
+
     if not json:
         json = {}
+
     result = json
     xml_etree = etree.parse(str(xml_document))
-    for mapping in mappings:
+    for mapping in jsonize_map:
         result = mapping.map(xml_etree, result, xml_namespaces=xml_namespaces)
     return result
