@@ -1,9 +1,4 @@
-from json import load
-from jsonize.utils.json import JSONNode, JSONNodeType
-from jsonize.utils.xml import XMLNodeType, XMLNode
-from jsonize.xml_to_json.base import XMLNodeToJSONNode, Transformation
-from jsonschema import Draft7Validator
-from pathlib import Path
+from jsonize import XMLNodeToJSONNode, XMLNode, XMLNodeType, JSONNode, JSONNodeType, Transformation
 from typing import Dict, List, Optional
 
 
