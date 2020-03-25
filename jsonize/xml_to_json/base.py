@@ -4,7 +4,9 @@ from jsonize.utils.xml import XMLNode, XMLNodeType, XPath
 from pathlib import Path
 from jsonize.utils.json import JSONNode, JSONNodeType, JSONPath, write_item_in_path
 from typing import Optional, Callable, Dict, Iterable, Union
-from jsonize.map_parser import parse, load
+from json import load
+from jsonize.utils.parsing import parse
+
 
 class Transformation:
     """
