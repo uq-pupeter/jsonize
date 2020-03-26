@@ -60,6 +60,9 @@ class JSONPath():
     def __repr__(self):
         return self.raw_json_path
 
+    def __eq__(self, other: JSONPath):
+        return self.raw_json_path == other.raw_json_path
+
 
 class JSONNodeType(Enum):
     """
