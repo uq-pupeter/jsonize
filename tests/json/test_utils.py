@@ -34,6 +34,8 @@ class TestGetItemJSONPath(unittest.TestCase):
             self.assertEqual(get_item_from_json_path(JSONPath('$'), sample_dict_2), sample_dict_2)
         with self.subTest():
             self.assertEqual(get_item_from_json_path(JSONPath('$'), sample_dict_3), sample_dict_3)
+        with self.subTest():
+            self.assertEqual(get_item_from_json_path(JSONPath('@'), sample_dict_2), sample_dict_2)
 
     def test_item_doesnt_exist(self):
         with self.assertRaises(KeyError):
