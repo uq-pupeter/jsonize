@@ -55,7 +55,10 @@ class JSONPath():
         :param relative_path: Relative JSONPath to append.
         :return: Result of appending the relative JSONPath to the end.
         """
-        assert relative_path.is_relative()
+        try:
+            assert relative_path.is_relative()
+        except AssertionError:
+            raise ValueError('Input "relative_path" is not a relative path.')
 
         self.raw_json_path = self.raw_json_path + relative_path.raw_json_path[1:]
         return None
