@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from copy import deepcopy
-from typing import Dict, Any
+from typing import Dict, Any, Union, List
 
 
 class JSONPath():
@@ -85,10 +85,10 @@ class JSONNode():
         self.node_type = node_type
 
 
-def get_item_from_json_path(path: JSONPath, json: Dict) -> Any:
+def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
     """
     :param path: JSONPath of the item that is to be accessed.
-    :param json: JSON serializable dictionary of which to obtain the item.
+    :param json: JSON serializable input from which to obtain the item.
     :raises KeyError: If the item at the given JSONPath does not exist.
     :raises TypeError: If an item along the JSONPath is not suscriptable.
     :return: Item at the given path from the input json.
