@@ -116,5 +116,62 @@ class TestWriteItemJSONPath(unittest.TestCase):
         result = write_item_in_path({'key5': 43}, JSONPath('$.key2.key3'), deepcopy(initial))
         self.assertEqual(reference, result)
 
+
+class TestJSONPath(unittest.TestCase):
+
+    def test_split_absolute(self):
+        absolute_path = JSONPath('$.key1.key2.key3.key4')
+        split = absolute_path.split(2)
+        reference = JSONPath('$.key1'), JSONPath('@.key2.key3.key4')
+        self.assertTupleEqual(split, reference)
+
+    def test_split_relative(self):
+        relative_path = JSONPath('@.key1.key2.key3.key4')
+        split = relative_path.split(-2)
+        reference = JSONPath('@.key1.key2'), JSONPath('@.key3.key4')
+        self.assertTupleEqual(split, reference)
+
+    def test_split_root(self):
+        absolute_path = JSONPath('$')
+        split = absolute_path.split(-1)
+        reference = JSONPath('$'), JSONPath('@')
+        self.assertTupleEqual(split, reference)
+
+    def test_fail_out_of_bound(self):
+        absolute_path = JSONPath('$.key1.key2.key3.key4')
+        with self.assertRaises(IndexError):
+            split = absolute_path.split(6)
+
+    def test_split_at_final_node(self):
+        absolute_path = JSONPath('$.key1.key2.key3.key4')
+        split = absolute_path.split(5)
+        reference = absolute_path, JSONPath('@')
+        self.assertTupleEqual(split, reference)
+
+    def test_is_relative(self):
+        with self.subTest():
+            self.assertTrue(JSONPath('@.key1').is_relative())
+        with self.subTest():
+            self.assertFalse(JSONPath('$.key1.key2').is_relative())
+
+    def test_is_absolute(self):
+        with self.subTest():
+            self.assertTrue(JSONPath('$.key1').is_absolute())
+        with self.subTest():
+            self.assertFalse(JSONPath('@.key1.key2').is_absolute())
+
+    def test_append(self):
+        reference = JSONPath('$.key1.key2.key3.key4')
+        path = JSONPath('$.key1.key2')
+        path.append(JSONPath('@.key3.key4'))
+        self.assertEqual(reference, path)
+
+    def test_fail_append(self):
+        with self.assertRaises(ValueError):
+            reference = JSONPath('$.key1.key2.key3.key4')
+            self.assertEqual(reference, JSONPath('$.key1.key2').append(JSONPath('$.key3.key4')))
+
+
+
 if __name__ == '__main__':
     unittest.main()
