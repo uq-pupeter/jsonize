@@ -76,13 +76,7 @@ class XMLNodeToJSONNode:
         elif self.from_xml_node.node_type == XMLNodeType['sequence']:
             if not self.item_mappings:
                 raise ValueError("An item_mapping must be provided for an XML node of type 'sequence'.")
-            xml_sequence = xml_etree.findall(self.from_xml_node.path, xml_namespaces)
-            input_value = []
-            for xml_element in xml_sequence:
-                item = {}
-                for mapping in self.item_mappings:
-                    item = mapping.map(xml_element, item, xml_namespaces)
-                input_value.append(item)
+            input_value = xml_etree.findall(self.from_xml_node.path, xml_namespaces)
         else:
             raise NotImplementedError(f"Mapping not implemented for: {self.from_xml_node.node_type}")
 
@@ -113,7 +107,16 @@ class XMLNodeToJSONNode:
                                  f'Only "true" and "false" are valid XML boolean values.')
             return write_item_in_path(value, JSONPath(self.to_json_node.path), json)
         if self.to_json_node.node_type == JSONNodeType['array']:
+            item = []
+            for element in input_value:
+                for mapping in self.item_mappings:
+                    item = mapping.map(element, item, xml_namespaces)
             return write_item_in_path(input_value, JSONPath(self.to_json_node.path), json)
+        if self.to_json_node.node_type == JSONNodeType['object']:
+            item = {}
+            for mapping in self.item_mappings:
+                item = mapping.map(input_value, json, xml_namespaces)
+            return write_item_in_path(item, JSONPath(self.to_json_node.path), json)
 
 
 def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> XMLNodeToJSONNode:
