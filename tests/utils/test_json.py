@@ -121,6 +121,11 @@ class TestWriteItemJSONPath(unittest.TestCase):
             reference = [3]
             result = write_item_in_path(3, JSONPath('$'), initial)
             self.assertEqual(reference, result)
+        with self.subTest('write item in array at relative root'):
+            initial = []
+            reference = [5]
+            result = write_item_in_path(5, JSONPath('@'), initial)
+            self.assertEqual(reference, result)
         with self.subTest('write item in array in nested location'):
             initial = {'key1': 1,
                        'key2': {'key3': [1, 1, 2, 3, 5],
