@@ -108,13 +108,30 @@ class TestWriteItemJSONPath(unittest.TestCase):
             write_item_in_path('Failed write', JSONPath('$.key1.key2.key4.key5.bad_key'), sample_dict_1)
 
     def test_write_item_in_array(self):
-        initial = {'key1': True,
-                   'key2': {'key3': [{'key4': 42}]}}
-        reference = {'key1': True,
-                     'key2': {'key3': [{'key4': 42}, {'key5': 43}]}
-                     }
-        result = write_item_in_path({'key5': 43}, JSONPath('$.key2.key3'), deepcopy(initial))
-        self.assertEqual(reference, result)
+        with self.subTest('write dictionary in array'):
+            initial = {'key1': True,
+                       'key2': {'key3': [{'key4': 42}]}}
+            reference = {'key1': True,
+                         'key2': {'key3': [{'key4': 42}, {'key5': 43}]}
+                         }
+            result = write_item_in_path({'key5': 43}, JSONPath('$.key2.key3'), deepcopy(initial))
+            self.assertEqual(reference, result)
+        with self.subTest('write item in array at root'):
+            initial = []
+            reference = [3]
+            result = write_item_in_path(3, JSONPath('$'), initial)
+            self.assertEqual(reference, result)
+        with self.subTest('write item in array in nested location'):
+            initial = {'key1': 1,
+                       'key2': {'key3': [1, 1, 2, 3, 5],
+                                'key4': 5}
+                       }
+            reference = {'key1': 1,
+                         'key2': {'key3': [1, 1, 2, 3, 5, 8],
+                                  'key4': 5}
+                         }
+            result = write_item_in_path(8, JSONPath('$.key2.key3'), initial)
+            self.assertEqual(reference, result)
 
 
 class TestJSONPath(unittest.TestCase):
@@ -170,7 +187,6 @@ class TestJSONPath(unittest.TestCase):
         with self.assertRaises(ValueError):
             reference = JSONPath('$.key1.key2.key3.key4')
             self.assertEqual(reference, JSONPath('$.key1.key2').append(JSONPath('$.key3.key4')))
-
 
 
 if __name__ == '__main__':
