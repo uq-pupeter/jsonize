@@ -111,7 +111,7 @@ class XMLNodeToJSONNode:
             for element in input_value:
                 for mapping in self.item_mappings:
                     item = mapping.map(element, item, xml_namespaces)
-            return write_item_in_path(input_value, JSONPath(self.to_json_node.path), json)
+            return write_item_in_path(item, JSONPath(self.to_json_node.path), json)
         if self.to_json_node.node_type == JSONNodeType['object']:
             item = {}
             for mapping in self.item_mappings:
