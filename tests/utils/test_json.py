@@ -47,6 +47,10 @@ class TestGetItemJSONPath(unittest.TestCase):
         with self.assertRaises(TypeError):
             get_item_from_json_path(test_json_path, sample_dict_2)
 
+    def test_get_item_in_array(self):
+        input_array = [0,1,2,3,4,5,6]
+        self.assertEqual(get_item_from_json_path(JSONPath('$[3]'), input_array))
+
 
 class TestWriteItemJSONPath(unittest.TestCase):
 
