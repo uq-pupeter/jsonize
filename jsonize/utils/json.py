@@ -119,14 +119,14 @@ def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
     return current_item
 
 
-def write_item_in_path(item: Any, in_path: JSONPath, json: Dict) -> Dict:
+def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List]) -> Dict:
     """
-    Attemps to write the given item at the JSONPath location. If an item already exists in the given JSONPath it will
+    Attempts to write the given item at the JSONPath location. If an item already exists in the given JSONPath it will
     overwrite it.
     :param item: Item to write
     :param in_path: JSONPath specifying where to write the item.
-    :param json: JSON serializable dictionary in which to write the item.
-    :raises TypeError: If an item along is not an object and thus cannot contain child attributes.
+    :param json: JSON serializable dictionary or list in which to write the item.
+    :raises TypeError: If an item along the in_path is not an object and thus cannot contain child attributes.
     :return: A copy of the input json with the item written in the given JSONPath.
     """
     json_copy = deepcopy(json)
