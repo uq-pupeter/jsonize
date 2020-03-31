@@ -159,7 +159,7 @@ class JSONPath():
         return self.raw_json_path
 
     def __eq__(self, other: JSONPath):
-        return self.raw_json_path == other.raw_json_path
+        return self.json_path_structure == other.json_path_structure
 
 
 class JSONNodeType(Enum):
