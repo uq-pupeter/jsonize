@@ -197,6 +197,64 @@ class TestJSONPath(unittest.TestCase):
             reference = JSONPath('$.key1.key2.key3.key4')
             self.assertEqual(reference, JSONPath('$.key1.key2').append(JSONPath('$.key3.key4')))
 
+    def test_json_path_structure(self):
+        with self.subTest():
+            reference_string = '$'
+            reference_path_structure = ['$']
+            self.assertEqual(JSONPath._json_path_structure(reference_string), reference_path_structure)
+        with self.subTest():
+            reference_string = '@'
+            reference_path_structure = ['@']
+            self.assertEqual(JSONPath._json_path_structure(reference_string), reference_path_structure)
+        with self.subTest():
+            reference_string = '$.key1.key2[-1].key3[1:5:2].key4[0:3][-1]'
+            reference_path_structure = ['$', 'key1', 'key2', -1, 'key3', slice(1, 5, 2), 'key4', slice(0, 3), -1]
+            self.assertEqual(JSONPath._json_path_structure(reference_string), reference_path_structure)
+        with self.subTest():
+            reference_string = '@[1].key2.key3'
+            reference_path_structure = ['@', 1, 'key2', 'key3']
+            self.assertEqual(JSONPath._json_path_structure(reference_string), reference_path_structure)
+        with self.subTest():
+            reference_string = '@[:3].key2.key3'
+            reference_path_structure = ['@', slice(None, 3), 'key2', 'key3']
+            self.assertEqual(JSONPath._json_path_structure(reference_string), reference_path_structure)
+
+    def test_string_representation(self):
+        with self.subTest():
+            reference_string = '$'
+            reference_path_structure = ['$']
+            self.assertEqual(JSONPath.string_representation(reference_path_structure), reference_string)
+        with self.subTest():
+            reference_string = '@'
+            reference_path_structure = ['@']
+            self.assertEqual(JSONPath.string_representation(reference_path_structure), reference_string)
+        with self.subTest():
+            reference_string = '$.key1.key2[-1].key3[1:5:2].key4[1:3][-1]'
+            reference_path_structure = ['$', 'key1', 'key2', -1, 'key3', slice(1, 5, 2), 'key4', slice(1, 3), -1]
+            self.assertEqual(JSONPath.string_representation(reference_path_structure), reference_string)
+        with self.subTest():
+            reference_string = '@[:3].key2.key3'
+            reference_path_structure = ['@', slice(None, 3), 'key2', 'key3']
+            self.assertEqual(JSONPath.string_representation(reference_path_structure), reference_string)
+
+    def test_build_from_path_structure(self):
+        with self.subTest():
+            from_string = JSONPath('$')
+            from_path_structure = JSONPath.from_json_path_structure(['$'])
+            self.assertEqual(from_string, from_path_structure)
+        with self.subTest():
+            from_string = JSONPath('@')
+            from_path_structure = JSONPath.from_json_path_structure(['@'])
+            self.assertEqual(from_string, from_path_structure)
+        with self.subTest():
+            from_string = JSONPath('$.key1.key2[-1].key3[1:5:2].key4[1:3][-1]')
+            from_path_structure = JSONPath.from_json_path_structure(['$', 'key1', 'key2', -1, 'key3', slice(1, 5, 2), 'key4', slice(1, 3), -1])
+            self.assertEqual(from_string, from_path_structure)
+        with self.subTest():
+            from_string = JSONPath('$.key1.key2[-1].key3[1:5:2].key4[1:3][-1]')
+            from_path_structure = JSONPath.from_json_path_structure(['$', 'key1', 'key2', -1, 'key3', slice(1, 5, 2), 'key4', slice(1, 3), -1])
+            self.assertEqual(from_string, from_path_structure)
+
 
 if __name__ == '__main__':
     unittest.main()
