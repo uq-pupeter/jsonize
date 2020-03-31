@@ -102,11 +102,11 @@ class JSONPath():
         :return: Tuple of XPath, the first one being the absolute path before the split at location
         and the second one the relative XPath start at the split location.
         """
-        if not abs(at) in range(1, len(self.json_path_structure()) + 1):
+        if not abs(at) in range(1, len(self.json_path_structure) + 1):
             raise IndexError
-        if len(self.json_path_structure()) == 1:
-            return JSONPath(self.json_path_structure()[0]), JSONPath('@')
-        return JSONPath('.'.join(self.json_path_structure()[:at])), JSONPath('.'.join(['@'] + self.json_path_structure()[at:]))
+        if len(self.json_path_structure) == 1:
+            return JSONPath(self.json_path_structure[0]), JSONPath('@')
+        return JSONPath.from_json_path_structure(self.json_path_structure[:at]), JSONPath.from_json_path_structure(['@'] + self.json_path_structure[at:])
 
     def append(self, relative_path: JSONPath) -> None:
         """
@@ -120,6 +120,7 @@ class JSONPath():
             raise ValueError('Input "relative_path" is not a relative path.')
 
         self.raw_json_path = self.raw_json_path + relative_path.raw_json_path[1:]
+        self.json_path_structure = self.json_path_structure + relative_path.json_path_structure[1:]
         return None
 
     @staticmethod
