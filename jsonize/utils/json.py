@@ -1,6 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from copy import deepcopy
+from pyparsing import nums, Word, Optional, Literal, Group, ParseResults
 from typing import Dict, Any, Union, List
 
 
@@ -11,15 +12,73 @@ class JSONPath():
     '$.store.book.author' represents an absolute JSONPath
     '@.author.lastName' represent a relative JSONPath
 
-    It does not support item access, slices, wildcards or parent operators.
+    It does not support wildcards or parent operators.
     :param json_path: String representation of a JSONPath
     """
 
     def __init__(self, json_path: str):
         self.raw_json_path = json_path
+        self.json_path_structure = JSONPath._json_path_structure(json_path)
 
-    def json_path_structure(self):
-        json_path_structure = self.raw_json_path.split('.')
+    @classmethod
+    def from_json_path_structure(cls, json_path_structure: List[Union[str, slice]]) -> JSONPath:
+        return cls(cls.string_representation(json_path_structure))
+
+    @staticmethod
+    def _parse_slices(slice_substring: str) -> List[Union[int, slice]]:
+        """
+        Parses a string expression consisting of a number of bracket notation python slices (e.g. '[0], '[0:5:2]'...)
+        and returns the list of index or slices to which it corresponds.
+        :param slice_substring: A string consisting of 0 or more consecutive slice expressions using bracket notation.
+        :return: A list of slices parsed from the slice_substring.
+        """
+        slice_expression = Group(("[" + Optional((Optional('-') + Word(nums))).setResultsName('start') +
+                                  Optional(Literal(':') + (Optional('-') + Word(nums)).setResultsName('stop') +
+                                           Optional(Literal(':') + (Optional('-') + Word(nums)).setResultsName('step'))) + "]"))
+        multislice_expression = slice_expression[...]
+
+        slice_matches = multislice_expression.parseString(slice_substring)  # type: List[ParseResults]
+        slices = []
+        for match in slice_matches:
+            if match.get('step'):
+                step = int(''.join(match.get('step')))
+            else:
+                step = None
+            if match.get('stop'):
+                stop = int(''.join(match.get('stop')))
+            else:
+                stop = None
+            if match.get('start'):
+                if not (stop or step):
+                    # When only one parameter is given, we use index access instead of slice
+                    slices.append(int(''.join(match.get('start'))))
+                else:
+                    start = int(''.join(match.get('start')))
+                    slices.append(slice(start, stop, step))
+            else:
+                start = None
+                slices.append(slice(start, stop, step))
+        return slices
+
+    @staticmethod
+    def _json_path_structure(json_path_string: str) -> List[Union[str, int, slice]]:
+        """
+        Parses the raw input of a JSONPath into a structured list where each entry corresponds to a JSON node.
+        Each entry of the list is either a string for node that are accessible by name (e.g. keys), an integer for index access to a list or a slice.
+        :param json_path_string: JSONPath string representation.
+        :return: A list
+        """
+        json_path_elements = json_path_string.split('.')
+        json_path_structure = []
+        for element in json_path_elements:
+            try:
+                slice_start = element.index('[')
+                slice_substring = element[slice_start:]
+                json_path_structure.append(element[:slice_start])
+                json_path_structure += JSONPath._parse_slices(slice_substring)
+            except ValueError:
+                # If element.index() raises ValueError, no slice is defined in the element
+                json_path_structure.append(element)
         return json_path_structure
 
     def is_absolute(self):
@@ -63,6 +122,35 @@ class JSONPath():
         self.raw_json_path = self.raw_json_path + relative_path.raw_json_path[1:]
         return None
 
+    @staticmethod
+    def string_representation(json_path_structure: List[Union[str, int, slice]]):
+        """
+        Returns a string representation from a json_path_structure.
+        :param json_path_structure: List of string, integer or slice that defines the JSONPath.
+        """
+        json_path = json_path_structure.pop(0)
+        for element in json_path_structure:
+            if isinstance(element, slice):
+                if element.start:
+                    start = element.start
+                else:
+                    start = ''
+                if element.stop:
+                    stop = element.stop
+                else:
+                    stop = ''
+                if element.step:
+                    step = element.step
+                else:
+                    step = ''
+                json_path += f'[' + bool(start) * f'{start}' + ':' + bool(stop) * f'{stop}' + bool(step) * f':{step}' + ']'
+            elif isinstance(element, int):
+                json_path += f'[{element}]'
+            else:
+                json_path += '.' + element
+
+        return json_path
+
     def __str__(self):
         return self.raw_json_path
 
@@ -92,6 +180,7 @@ class JSONNode():
     :param json_path: The JSONPath of the node.
     :param node_type: A JSONNodeType enumeration specifying the type of the node.
     """
+
     def __init__(self, json_path: str, node_type: JSONNodeType):
         self.path = json_path
         self.node_type = node_type
@@ -106,7 +195,7 @@ def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
     :return: Item at the given path from the input json.
     """
     current_item = json
-    for key_pos, key in enumerate(path.json_path_structure()):
+    for key_pos, key in enumerate(path._json_path_structure()):
         try:
             if key == '$' or key == '@':
                 pass
@@ -131,7 +220,7 @@ def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List]) ->
     """
     json_copy = deepcopy(json)
     parent_path, item_relative_path = in_path.split(-1)
-    item_key = item_relative_path.json_path_structure()[-1]
+    item_key = item_relative_path._json_path_structure()[-1]
 
     # If the JSONPath exists and points to a list we append the item to the list
     try:
