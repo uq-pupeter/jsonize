@@ -196,7 +196,7 @@ def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
     :return: Item at the given path from the input json.
     """
     current_item = json
-    for key_pos, key in enumerate(path._json_path_structure()):
+    for key_pos, key in enumerate(path.json_path_structure):
         try:
             if key == '$' or key == '@':
                 pass
@@ -206,6 +206,8 @@ def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
             raise KeyError('The following path does not exist', path.split(at=key_pos + 1)[0])
         except TypeError:
             raise TypeError('The following item is not a dictionary: ', path.split(at=key_pos + 1)[0])
+        except IndexError:
+            raise IndexError(f'The item in the following path "{path.split(at=key_pos + 1)[0]}" cannot be accessed', path.split(at=key_pos + 1)[0])
     return current_item
 
 
