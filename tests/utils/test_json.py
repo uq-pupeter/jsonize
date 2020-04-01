@@ -118,17 +118,17 @@ class TestWriteItemJSONPath(unittest.TestCase):
             reference = {'key1': True,
                          'key2': {'key3': [{'key4': 42}, {'key5': 43}]}
                          }
-            result = write_item_in_path({'key5': 43}, JSONPath('$.key2.key3'), deepcopy(initial))
+            result = write_item_in_path({'key5': 43}, JSONPath('$.key2.key3[-1]'), deepcopy(initial))
             self.assertEqual(reference, result)
         with self.subTest('write item in array at root'):
             initial = []
             reference = [3]
-            result = write_item_in_path(3, JSONPath('$'), initial)
+            result = write_item_in_path(3, JSONPath('$[0]'), initial)
             self.assertEqual(reference, result)
         with self.subTest('write item in array at relative root'):
             initial = []
             reference = [5]
-            result = write_item_in_path(5, JSONPath('@'), initial)
+            result = write_item_in_path(5, JSONPath('@[0]'), initial)
             self.assertEqual(reference, result)
         with self.subTest('write item in array in nested location'):
             initial = {'key1': 1,
@@ -136,10 +136,10 @@ class TestWriteItemJSONPath(unittest.TestCase):
                                 'key4': 5}
                        }
             reference = {'key1': 1,
-                         'key2': {'key3': [1, 1, 2, 3, 5, 8],
+                         'key2': {'key3': [1, 1, 8, 2, 3, 5],
                                   'key4': 5}
                          }
-            result = write_item_in_path(8, JSONPath('$.key2.key3'), initial)
+            result = write_item_in_path(8, JSONPath('$.key2.key3[2]'), initial)
             self.assertEqual(reference, result)
 
 
