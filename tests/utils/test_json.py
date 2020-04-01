@@ -51,6 +51,11 @@ class TestGetItemJSONPath(unittest.TestCase):
         input_array = [0, 1, 2, 3, 4, 5, 6]
         self.assertEqual(get_item_from_json_path(JSONPath('$[3]'), input_array), 3)
 
+    def test_get_item_nested_arrays(self):
+        input = {'key1': 43,
+                 'key2': [0, 1, [{'key3': True}, {'key4': False}]]}
+        self.assertEqual(get_item_from_json_path(JSONPath('$.key2[2][-1].key4'), input), False)
+
 
 class TestWriteItemJSONPath(unittest.TestCase):
 
@@ -142,6 +147,13 @@ class TestWriteItemJSONPath(unittest.TestCase):
             result = write_item_in_path(8, JSONPath('$.key2.key3[2]'), initial)
             self.assertEqual(reference, result)
 
+    def test_write_item_nested_arrays(self):
+        initial = {'key1': 43,
+                   'key2': [0, 1, [{'key3': True}, {'key4': False}]]}
+        reference = {'key1': 43,
+                     'key2': [0, 1, [{'key3': True}, {'key4': False, 'key5': 'New Value'}]]}
+        self.assertEqual(write_item_in_path('New Value', JSONPath('$.key2[-1][-1].key5'), initial), reference)
+
 
 class TestJSONPath(unittest.TestCase):
 
@@ -166,7 +178,7 @@ class TestJSONPath(unittest.TestCase):
     def test_fail_out_of_bound(self):
         absolute_path = JSONPath('$.key1.key2.key3.key4')
         with self.assertRaises(IndexError):
-            split = absolute_path.split(6)
+            absolute_path.split(6)
 
     def test_split_at_final_node(self):
         absolute_path = JSONPath('$.key1.key2.key3.key4')
