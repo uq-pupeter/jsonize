@@ -107,11 +107,13 @@ class XMLNodeToJSONNode:
                                  f'Only "true" and "false" are valid XML boolean values.')
             return write_item_in_path(value, JSONPath(self.to_json_node.path), json)
         if self.to_json_node.node_type == JSONNodeType['array']:
-            item = []
+            items = []
             for element in input_value:
+                item = {}
                 for mapping in self.item_mappings:
                     item = mapping.map(element, item, xml_namespaces)
-            return write_item_in_path(item, JSONPath(self.to_json_node.path), json)
+                items.append(item)
+            return write_item_in_path(items, JSONPath(self.to_json_node.path), json)
         if self.to_json_node.node_type == JSONNodeType['object']:
             item = {}
             for mapping in self.item_mappings:
