@@ -31,7 +31,7 @@ pip install git+https://github.com/eurocontrol-swim/jsonize@dev
 Or to select a particular version by tag:
 
 ```shell script
-pip install git+https://github.com/eurocontrol-swim/jsonize@v1.0
+pip install git+https://github.com/eurocontrol-swim/jsonize@v0.0.1-alpha
 ```
 
 
