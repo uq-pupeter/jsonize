@@ -177,11 +177,13 @@ def xml_document_to_json(xml_document: Path,
                          transformations: Optional[Iterable[Transformation]]=None) -> Dict:
     """
     Transforms an XML document into a JSON serializable dictionary.
-    :param jsonize_map: An iterable of XMLNodeToJSONNode defining the mappings from each node in the XML document to the JSON file.
+    :param jsonize_map_document: Path to a JSON file defining the Jsonize map.
+    :param jsonize_map: An iterable of XMLNodeToJSONNode defining the Jsonize mapping. If provided it overrides the parameter jsonize_map_document.
     :param xml_document: A Path to the XML document that is to be converted.
-    :param xml_namespaces: A dictionary defining the XML namespaces with namespace shortname as keys and the full namespace name as values.
+    :param xml_namespaces: A dictionary defining the XML namespaces with namespace shortname as keys and the full namespace name as values. Follows the
+    xml standard library convention for XML namespaces.
     :param json: An input dictionary into which the XML document is to be mapped. Defaults to an empty dictionary if none given.
-    :return: A JSON serializable dictionary containing the items defined in the mappings extracted from the xml_document.
+    :return: A (JSON serializable) Python dictionary containing the items defined in the mappings extracted from the xml_document.
     """
     if transformations is None:
         transformations = []
