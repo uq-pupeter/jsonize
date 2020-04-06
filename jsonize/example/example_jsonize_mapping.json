@@ -1,0 +1,85 @@
+[
+  {
+    "from": {
+      "path": "./book",
+      "type": "sequence"
+    },
+    "to": {
+      "path": "$.books",
+      "type": "array"
+    },
+    "itemMappings": [
+      {
+        "from": {
+          "path": "./@id",
+          "type": "attribute"
+        },
+        "to": {
+          "path": "@.id",
+          "type": "string"
+        }
+      },
+      {
+        "from": {
+          "path": "./author",
+          "type": "value"
+        },
+        "to": {
+          "path": "@.author",
+          "type": "string"
+        }
+      },
+      {
+        "from": {
+          "path": "./title",
+          "type": "value"
+        },
+        "to": {
+          "path": "@.title",
+          "type": "string"
+        }
+      },
+      {
+        "from": {
+          "path": "./genre",
+          "type": "value"
+        },
+        "to": {
+          "path": "@.genre",
+          "type": "string"
+        }
+      },
+      {
+        "from": {
+          "path": "./price",
+          "type": "value"
+        },
+        "to": {
+          "path": "@.price",
+          "type": "number"
+        }
+      },
+      {
+        "from": {
+          "path": "./description",
+          "type": "value"
+        },
+        "to": {
+          "path": "@.rawDescription",
+          "type": "string"
+        }
+      },
+      {
+        "from": {
+          "path": "./description",
+          "type": "value"
+        },
+        "to": {
+          "path": "@.description",
+          "type": "string"
+        },
+        "transformation": "text_cleanup"
+      }
+    ]
+  }
+]
