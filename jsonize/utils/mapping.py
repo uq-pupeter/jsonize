@@ -183,6 +183,7 @@ def xml_document_to_json(xml_document: Path,
     :param xml_namespaces: A dictionary defining the XML namespaces with namespace shortname as keys and the full namespace name as values. Follows the
     xml standard library convention for XML namespaces.
     :param json: An input dictionary into which the XML document is to be mapped. Defaults to an empty dictionary if none given.
+    :param transformations: An iterable of Transformation that contains the functions that are invoked in the Jsonize mapping.
     :return: A (JSON serializable) Python dictionary containing the items defined in the mappings extracted from the xml_document.
     """
     if transformations is None:
