@@ -1,7 +1,7 @@
 from __future__ import annotations
 from json import load, dump
 from pathlib import Path
-from xml.etree import ElementTree as etree
+from lxml.etree import parse as xml_parse
 from jsonize.utils.xml_utils import XMLNode, XMLNodeType, build_node_tree
 from jsonize.utils.json_utils import JSONNode, JSONNodeType, JSONPath, write_item_in_path
 from typing import Dict, List, Optional, Callable, Iterable
@@ -220,14 +220,14 @@ def xml_document_to_json(xml_document: Path,
         json = {}
 
     result = json
-    xml_etree = etree.parse(str(xml_document))
+    xml_etree = xml_parse(str(xml_document))
     for mapping in jsonize_map:
         result = mapping.map(xml_etree, result, xml_namespaces=xml_namespaces)
     return result
 
 
 def infer_jsonize_map(xml_document: Path, output_map: Path, xml_namespaces: Dict = None, attribute_tag: str = '', keep_namespaces: bool = True) -> None:
-    xml_etree = etree.parse(str(xml_document))
+    xml_etree = xml_parse(str(xml_document))
     node_tree = build_node_tree(xml_etree, xml_namespaces=xml_namespaces)
     if keep_namespaces:
         jsonized = node_tree.to_jsonize(attributes=attribute_tag, namespaces='preserve')
