@@ -119,6 +119,25 @@ class XMLNodeToJSONNode:
             for mapping in self.item_mappings:
                 item = mapping.map(input_value, json, xml_namespaces)
             return write_item_in_path(item, JSONPath(self.to_json_node.path), json)
+        if self.to_json_node.node_type == JSONNodeType['infer']:
+            if input_value in ['true', 'false']:
+                if input_value == 'true':
+                    value = True
+                elif input_value == 'false':
+                    value = False
+                return write_item_in_path(value, JSONPath(self.to_json_node.path), json)
+            try:
+                value = float(input_value)
+                if value.is_integer():
+                    value = int(value)
+                return write_item_in_path(value, JSONPath(self.to_json_node.path), json)
+            except ValueError:
+                return write_item_in_path(input_value, JSONPath(self.to_json_node.path), json)
+            except TypeError:
+                if input_value is None:
+                    return write_item_in_path(input_value, JSONPath(self.to_json_node.path), json)
+                else:
+                    raise ValueError(f'Unable to infer JSON type for the value at {self.from_xml_node.path}')
 
 
 def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> XMLNodeToJSONNode:
