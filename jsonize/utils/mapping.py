@@ -2,8 +2,8 @@ from __future__ import annotations
 from json import load
 from pathlib import Path
 from xml.etree import ElementTree as etree
-from jsonize.utils.xml import XMLNode, XMLNodeType, XPath
-from jsonize.utils.json import JSONNode, JSONNodeType, JSONPath, write_item_in_path
+from jsonize.utils.xml_utils import XMLNode, XMLNodeType, XPath
+from jsonize.utils.json_utils import JSONNode, JSONNodeType, JSONPath, write_item_in_path
 from typing import Dict, List, Optional, Callable, Iterable
 
 

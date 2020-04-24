@@ -1,6 +1,6 @@
 import unittest
-from jsonize.utils.xml import XPath, XMLNode, XMLNodeType, get_short_namespace
-from jsonize.utils.json import JSONPath
+from jsonize.utils.xml_utils import XPath, XMLNode, XMLNodeType, get_short_namespace
+from jsonize.utils.json_utils import JSONPath
 
 
 class TestNamespaceSubstitution(unittest.TestCase):
