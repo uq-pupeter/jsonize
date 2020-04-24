@@ -103,7 +103,7 @@ class XMLSequenceNode(XMLNode):
         super().__init__(xpath=xpath, node_type=node_type)
         if not self.node_type == XMLNodeType['sequence']:
             raise ValueError('Incorrect node_type, an XMLNodeType "sequence" is expected.')
-        self.sub_nodes = [node.relative_to(self) for node in sub_nodes]
+        self.sub_nodes = [node.relative_to(self, in_place=False) for node in sub_nodes]
 
     def relative_to(self, ancestor: XMLNode, in_place: bool = True) -> Union[None, XMLNode]:
         """
