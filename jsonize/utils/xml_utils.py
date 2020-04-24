@@ -149,7 +149,7 @@ class XMLSequenceNode(XMLNode):
             # If there are no sub_nodes then we create a single sub_node pointing to the value of each XML element in the sequence.
             jsonize['itemMappings'] = [
                 {'from': {'path': '.',
-                          'type': XMLNodeType['value']},
+                          'type': 'value'},
                  'to': {'path': '@',
                         'type': 'infer'}
                  }
