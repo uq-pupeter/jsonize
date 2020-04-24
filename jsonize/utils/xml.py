@@ -162,6 +162,7 @@ class XPath():
     Class representing an XPath.
     :param xpath: The string representation of the xpath.
     """
+
     def __init__(self, xpath: str):
         self.raw_xpath = xpath
 
@@ -187,6 +188,17 @@ class XPath():
         """
         return self._xpath_structure()[-1][0] == '@'
 
+    def is_descendant(self, ancestor: XPath) -> bool:
+        """
+        Determines if the current XPath is a descendant of a given ancestor.
+        :param ancestor: XPath of a node of which we want to determine if the current one is a descendant.
+        :return: True if the node is a descendant of ancestor, False otherwise.
+        """
+        if ancestor.raw_xpath in self.raw_xpath and not self == ancestor:
+            return True
+        else:
+            return False
+
     def attribute_name(self) -> str:
         """
         :return: Name of the attribute node.
@@ -211,8 +223,100 @@ class XPath():
         """
         return XPath('/'.join(self._xpath_structure()[:at])), XPath('/'.join(['.'] + self._xpath_structure()[at:]))
 
+    def to_json_path(self, attributes: str = '', namespaces: str = 'preserve') -> JSONPath:
+        """
+        Infers a JSONPath representation for the XPath.
+        :param attributes: Defines the tag that will precede an XML attribute name in JSONPath. It defaults to an empty
+        string, resulting in no difference in the representation of XML elements and attributes into JSON. Can be used to define your own convention.
+        E.g. the following XPath '/element/subelement/@attribute will be transformed as follows:
+                '': $.element.subelement.attribute
+                '_': $.element.subelement._attribute
+                '@': $.element.subelement.@attribute
+        :param namespaces: Defines how XML namespaces will be handled. It can take the values 'preserve' and 'ignore'. It defaults to 'preserve',
+        resulting in shortened namespaces being kept in the JSONPath. The value 'ignore' will drop them in the conversion to JSONPath.
+        E.g. the following XPath '/ns:element/nss:subelement will be transformed as follows:
+                'preserve': $.ns:element.nss:subelement
+                'ignore': $.element.subelement
+        The value 'ignore' should be used with caution as it may result in name collisions.
+        :return: A JSONPath representation of the XPath.
+        """
+        if namespaces == 'ignore':
+            json_path = re.sub(r'[a-zA-Z]+:', '', self.raw_xpath)
+        else:
+            json_path = self.raw_xpath
+        json_path = re.sub(r'/@', '/' + attributes, json_path)
+        json_path = re.sub(r'^\./', '@/', json_path)
+        json_path = re.sub(r'^/', '$/', json_path)
+        json_path = re.sub(r'/', '.', json_path)
+        return JSONPath(json_path)
+
+    def relative_to(self, ancestor: XPath, in_place: bool = True) -> Union[None, XPath]:
+        """
+        Makes the XPath relative to a given ancestor.
+        :param ancestor: An XPath to which we want to make the current one relative to.
+        :param in_place: If True the current instance will be updated (returns None). If False, a new one will be created with the result
+        of the relative path (returns an XPath instance with the relative XPath).
+        :return: None or a new instance of XPath with the relative path, as defined by the in_place parameter.
+        """
+        if in_place:
+            self.raw_xpath = re.sub(r'^{}'.format(re.escape(str(ancestor))), '.', self.raw_xpath)
+            return None
+        else:
+            return XPath(re.sub(r'^{}'.format(re.escape(str(ancestor))), '.', self.raw_xpath))
+
+    def shorten_namespaces(self, xml_namespaces: Dict[str, str], in_place: bool = True) -> Union[None, XPath]:
+        if in_place:
+            self.raw_xpath = re.sub(r'\{([^\}]+)\}', lambda x: get_short_namespace(x.group(1), xml_namespaces) + ':', self.raw_xpath)
+            return None
+        else:
+            return XPath(re.sub(r'\{([^\}]+)\}', lambda x: get_short_namespace(x.group(1), xml_namespaces) + ':', self.raw_xpath))
+
+    def remove_indices(self, in_place: bool = True) -> Union[None, XPath]:
+        """
+        Removes the XPath indices that are present in elements part of an XML sequence. i.e. '/element/subelement[2]/subsubelement[10]' becomes
+        '/element/subelement/subsubelement'.
+        :param in_place: If True the current instance will be updated (returns None). If False, a new one will be created with the result
+        of the relative path (returns an XPath instance with the XPath without indices).
+        :return: None or a new instance of XPath with the new XPath with indices removed, as defined by the in_place parameter.
+        """
+        if in_place:
+            self.raw_xpath = re.sub(r'\[[0-9]+\]', '', self.raw_xpath)
+            return None
+        else:
+            return XPath(re.sub(r'\[[0-9]+\]', '', self.raw_xpath))
+
+    def _infer_node_type(self) -> XMLNodeType:
+        """
+        Attempts to infer the type of XML node from the XPath.
+        A number of assumptions are needed for this inference to work. In particular:
+            - Must be used on leaf nodes, XPath doesn't distinguish between the XML value inside and element and the element itself.
+            In Jsonize we are interested in the values present at leaves, so whenever we identify an element we will assume it represents the value of a leaf.
+            - Indices of sequences must have not been removed, as they will be used to determine that the element is part of a sequence.
+        Because of these assumptions this method should be used with care, knowing what you are doing or under the supervision of an adult.
+        It's made private, as to not be exposed in the public interface of the class. If needed, use judiciously.
+        :return: XMLNodeType that is inferred from the XPath.
+        """
+        structured_path = self._xpath_structure()
+        if '@' in structured_path[-1]:
+            type = XMLNodeType['attribute']
+        elif re.search(r'\[[0-9]+\]', structured_path[-1]):
+            type = XMLNodeType['sequence']
+        else:
+            type = XMLNodeType['value']
+        return type
+
     def __str__(self) -> str:
         return self.raw_xpath
 
     def __repr__(self) -> str:
         return self.raw_xpath
+
+    def __hash__(self):
+        return hash(self.raw_xpath)
+
+    def __eq__(self, other: XPath):
+        if isinstance(other, XPath):
+            return other.raw_xpath == self.raw_xpath
+        else:
+            return False
+
