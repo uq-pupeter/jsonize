@@ -23,6 +23,7 @@ setuptools.setup(
     python_requires='>=3.6',
     install_requires=[
         'jsonschema>=3.2.0',
-        'pyparsing>=2.4.6'
+        'pyparsing>=2.4.6',
+        'lxml>=4.5.0'
     ]
 )
