@@ -2,7 +2,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Tuple, Dict, Iterable, Union, List
 from .json_utils import JSONPath
-from xml.etree import ElementTree
+from lxml.etree import ElementTree
 import re
 
 
