@@ -391,9 +391,12 @@ def build_sequence_tree(sequence_nodes: List[XMLNode], leaf_nodes: List[Union[XM
 def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> XMLNodeTree:
     root_xpath = XPath(tree.getpath(tree.getroot()))
     all_nodes = set(generate_nodes(tree, xml_namespaces))
-    sequence_node_xpaths = set(node_xpath.remove_indices(in_place=True).relative_to(root_xpath)
-                               for node_xpath in generate_node_xpaths(tree, xml_namespaces)
-                               if node_xpath._infer_node_type() == XMLNodeType['sequence'])
+    sequence_node_xpaths = set()
+    for node_xpath in generate_node_xpaths(tree, xml_namespaces):
+        if node_xpath._infer_node_type() == XMLNodeType['sequence']:
+            node_xpath.remove_indices(in_place=True)
+            node_xpath.relative_to(root_xpath, in_place=True)
+            sequence_node_xpaths.add(node_xpath)
     leaves = list(node for node in all_nodes if node.is_leaf(all_nodes) and node.node_type != XMLNodeType['sequence'])
     sequences = []
     for sequence_xpath in sequence_node_xpaths:
