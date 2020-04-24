@@ -54,13 +54,13 @@ class XMLNodeToJSONNode:
         :return: The JSON serializable dictionary with the input XMLNode mapped.
         """
         if self.from_xml_node.node_type == XMLNodeType['value']:
-            xml_element = xml_etree.find(self.from_xml_node.path, xml_namespaces)
+            xml_element = xml_etree.find(str(self.from_xml_node.path), xml_namespaces)
             try:
                 input_value = xml_element.text
             except AttributeError:
                 input_value = None
         elif self.from_xml_node.node_type == XMLNodeType['attribute']:
-            attribute_path = XPath(self.from_xml_node.path)
+            attribute_path = self.from_xml_node.path
             parent_element_path = attribute_path.parent()
             attribute_name = attribute_path.attribute_name()
             if ':' in attribute_name:
@@ -76,7 +76,7 @@ class XMLNodeToJSONNode:
         elif self.from_xml_node.node_type == XMLNodeType['sequence']:
             if not self.item_mappings:
                 raise ValueError("An item_mapping must be provided for an XML node of type 'sequence'.")
-            input_value = xml_etree.findall(self.from_xml_node.path, xml_namespaces)
+            input_value = xml_etree.findall(str(self.from_xml_node.path), xml_namespaces)
         else:
             raise NotImplementedError(f"Mapping not implemented for: {self.from_xml_node.node_type}")
 
