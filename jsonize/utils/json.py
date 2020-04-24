@@ -165,6 +165,7 @@ class JSONPath():
 class JSONNodeType(Enum):
     """
     JSON base types.
+    The value infer means, best match.
     """
     string = 1
     integer = 2
@@ -173,6 +174,7 @@ class JSONNodeType(Enum):
     array = 5
     boolean = 6
     null = 7
+    infer = 8
 
 
 class JSONNode():
