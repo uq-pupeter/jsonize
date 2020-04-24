@@ -320,3 +320,84 @@ class XPath():
         else:
             return False
 
+
+class XMLNodeTree():
+    """
+    A representation of an XML node tree, organized around sequences and leaves. The whole XML structure is expressed
+    as XML leaf nodes and XML sequences, if any, serve as branch points in the tree.
+    This mimics the Jsonize mapping structure and is used to infer the Jsonize mapping of a given XML.
+    :param nodes: An iterable of XMLNode.
+    """
+    def __init__(self, nodes: Iterable[XMLNode] = None):
+        if nodes is not None:
+            self.nodes = nodes
+        else:
+            self.nodes = []
+
+    def to_jsonize(self, attributes: str = '', namespaces: str = 'preserve'):
+        jsonize = [node.to_jsonize(attributes=attributes, namespaces=namespaces) for node in self.nodes]
+        return jsonize
+
+
+def get_short_namespace(full_ns: str, xml_namespaces: Dict[str, str]) -> str:
+    for key, value in xml_namespaces.items():
+        if full_ns == value:
+            return key
+    raise KeyError('The namespace is not found in "xml_namespaces".', full_ns)
+
+
+def generate_node_xpaths(root: ElementTree, xml_namespaces: Dict[str, str] = None) -> Iterable[XPath]:
+    all_elements = root.iterfind('//*')  # type: Iterable[ElementTree]
+    for element in all_elements:
+        element_path = root.getpath(element)
+        attribs = (element_path + '/@' + attrib_name for attrib_name, _ in element.attrib.items())
+        yield XPath(element_path).shorten_namespaces(xml_namespaces, in_place=False)
+        for attrib in attribs:
+            yield XPath(attrib).shorten_namespaces(xml_namespaces, in_place=False)
+
+
+def generate_nodes(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> Iterable[XMLNode]:
+    root = tree.getroot()
+    root_xpath = XPath(tree.getpath(root))
+    for xpath in generate_node_xpaths(tree, xml_namespaces):
+        relative_xpath = xpath.relative_to(root_xpath, in_place=False)
+        cleaned_xpath = relative_xpath.remove_indices(in_place=False)
+        yield XMLNode(xpath=cleaned_xpath, node_type=xpath._infer_node_type())
+
+
+def build_sequence_tree(sequence_nodes: List[XMLNode], leaf_nodes: List[Union[XMLNode, XMLSequenceNode]]) -> Tuple[List[XMLNode], List[XMLNode]]:
+    if not sequence_nodes:
+        return sequence_nodes, leaf_nodes
+
+    trimmed_sequence_indices = []
+    trimmed_leaf_indices = []
+    deepest_sequences = []
+    for i, node in enumerate(sequence_nodes):
+        if node.is_leaf(sequence_nodes):
+            sequence_node_leaves = []
+            for ix, leaf in enumerate(leaf_nodes):
+                if leaf.is_descendant(node):
+                    sequence_node_leaves.append(leaf)
+                    trimmed_leaf_indices.append(ix)
+            trimmed_sequence_indices.append(i)
+            sequence = XMLSequenceNode(node.path, XMLNodeType['sequence'], sub_nodes=sequence_node_leaves)  # type: XMLSequenceNode
+            deepest_sequences.append(sequence)
+
+    trimmed_sequence_nodes = [node for i, node in enumerate(sequence_nodes) if i not in trimmed_sequence_indices]
+    trimmed_leaf_nodes = [node for i, node in enumerate(leaf_nodes) if i not in trimmed_leaf_indices]
+    return build_sequence_tree(trimmed_sequence_nodes, trimmed_leaf_nodes + deepest_sequences)
+
+
+def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> XMLNodeTree:
+    root_xpath = XPath(tree.getpath(tree.getroot()))
+    all_nodes = set(generate_nodes(tree, xml_namespaces))
+    sequence_node_xpaths = set(node_xpath.remove_indices(in_place=True).relative_to(root_xpath)
+                               for node_xpath in generate_node_xpaths(tree, xml_namespaces)
+                               if node_xpath._infer_node_type() == XMLNodeType['sequence'])
+    leaves = list(node for node in all_nodes if node.is_leaf(all_nodes) and node.node_type != XMLNodeType['sequence'])
+    sequences = []
+    for sequence_xpath in sequence_node_xpaths:
+        sequence = XMLNode(sequence_xpath, XMLNodeType['sequence'])
+        sequences.append(sequence)
+
+    return XMLNodeTree(nodes=build_sequence_tree(sequences, leaves)[1])
