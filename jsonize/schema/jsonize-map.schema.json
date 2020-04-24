@@ -20,7 +20,8 @@
             "array",
             "object",
             "boolean",
-            "null"
+            "null",
+            "infer"
           ]
         }
       },
