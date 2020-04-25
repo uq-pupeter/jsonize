@@ -58,13 +58,14 @@ class XMLNode():
         Determines if the current XMLNode is a leaf with respect to an iterable of XMLNode defining the tree it belongs to.
         Determining if a particular node is a leaf can only be done in comparison with the entire XMl tree, hence in the tree
         parameter we must pass an iterable of all the XMLNodes of the XML.
+        We consider a node a leaf if there are no elements in the tree that are descendant of the node
         :param tree: An iterable of XMLNode containing each node of the XML tree.
         :return: True if the current node is not an ancestor of any of the XMLNode in the tree, False otherwise.
         """
         if self.node_type == XMLNodeType['attribute']:
             return True
         else:
-            return not any([parent_node.is_descendant(self) for parent_node in tree])
+            return not any([parent_node.is_descendant(self) for parent_node in tree if not parent_node.node_type == XMLNodeType['attribute']])
 
     def to_jsonize(self, attributes: str = '', namespaces: str = 'preserve') -> Dict:
         """
