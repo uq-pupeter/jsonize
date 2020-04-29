@@ -195,7 +195,7 @@ class XPath():
         :param ancestor: XPath of a node of which we want to determine if the current one is a descendant.
         :return: True if the node is a descendant of ancestor, False otherwise.
         """
-        if ancestor.raw_xpath in self.raw_xpath and not self == ancestor:
+        if ancestor.raw_xpath + '/' in self.raw_xpath and not self == ancestor:
             return True
         else:
             return False
