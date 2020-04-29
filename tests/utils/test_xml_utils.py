@@ -109,6 +109,11 @@ class TestXPathRelations(unittest.TestCase):
             not_descendant = XPath('/root/otherElement/subelement/leaf')
             self.assertFalse(not_descendant.is_descendant(ancestor))
 
+        with self.subTest():
+            ancestor = XPath('/root/element')
+            not_descendant = XPath('/root/elemental')
+            self.assertFalse(not_descendant.is_descendant(ancestor))
+
     def test_is_leaf(self):
         all_nodes = [XMLNode('/root/element/@attrib', XMLNodeType['attribute']),
                      XMLNode('/root/element/subelement/subsubelement', XMLNodeType['element']),
