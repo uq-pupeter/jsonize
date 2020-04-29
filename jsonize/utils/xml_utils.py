@@ -67,14 +67,23 @@ class XMLNode():
         else:
             return not any([parent_node.is_descendant(self) for parent_node in tree if not parent_node.node_type == XMLNodeType['attribute']])
 
-    def to_jsonize(self, attributes: str = '', namespaces: str = 'preserve') -> Dict:
+    def to_jsonize(self, values: str = 'value', attributes: str = '', namespaces: str = 'preserve') -> Dict:
         """
         Infers a Jsonize mapping from the XMLNode. It does so by creating a direct translation of the XPath into JSONPath
-        that can be fine-tuned via the 'attributes' and 'namespaces' parameters.
+        that can be fine-tuned via the 'values', 'attributes' and 'namespaces' parameters.
         The JSON type is set to 'infer' which make Jsonize attempt to find the best JSON type for the input data.
+        :param values: Defines the name to be given in JSONPath to the value inside an XML element node. An XML element can contain
+        both attributes and a value, a natural correspondence in JSON would be to map an element to an object as to be able to contain all that
+        data. This parameter specifies what should be the name associated to the value of an XML element. It defaults to 'value'.
+        If an empty string is given then a JSON object will not be used, instead mapping the value directly.
+        E.g. the following XPath 'element/subelement' will be transformed to the following JSONPath:
+                'value': '$.element.subelement.value'
+                '': '$.element.subelement
+        If values is set to '', it could cause problems with elements that contain attributes as there will not be a place to store them. Thus it's
+        recommended that this option is only used when the XML doesn't contain attributes.
         :param attributes: Defines the tag that will precede an XML attribute name in JSONPath. It defaults to an empty
         string, resulting in no difference in the representation of XML elements and attributes into JSON. Can be used to define your own convention.
-        E.g. the following XPath '/element/subelement/@attribute will be transformed as follows:
+        E.g. the following XPath '/element/subelement/@attribute will be transformed to the following JSONPath:
                 '': $.element.subelement.attribute
                 '_': $.element.subelement._attribute
                 '@': $.element.subelement.@attribute
@@ -86,6 +95,9 @@ class XMLNode():
         The value 'ignore' should be used with caution as it may result in name collisions.
         :return: A dictionary containing the Jsonize mapping of the XMLNode.
         """
+        json_path = str(self.path.to_json_path(attributes=attributes, namespaces=namespaces))
+        if self.node_type == XMLNodeType['value'] and values:
+            json_path += '.' + values
         jsonize = {'from': {'path': str(self.path),
                             'type': self.node_type.name},
                    'to': {'path': str(self.path.to_json_path(attributes=attributes, namespaces=namespaces)),
@@ -120,11 +132,20 @@ class XMLSequenceNode(XMLNode):
         else:
             return self.__class__(str(self.path.relative_to(ancestor=ancestor.path, in_place=False)), self.node_type, self.sub_nodes)
 
-    def to_jsonize(self, attributes: str = '', namespaces: str = 'preserve'):
+    def to_jsonize(self, values: str = 'value', attributes: str = '', namespaces: str = 'preserve'):
         """
         Infers a Jsonize mapping from the XMLSequenceNode. It does so by creating a direct translation of the XPath into JSONPath
         that can be fine-tuned via the 'attributes' and 'namespaces' parameters.
         The JSON type is set to 'array' as it's the natural match of an XMLSequence.
+        :param values: Defines the name to be given in JSONPath to the value inside an XML element node. An XML element can contain
+        both attributes and a value, a natural correspondence in JSON would be to map an element to an object as to be able to contain all that
+        data. This parameter specifies what should be the name associated to the value of an XML element. It defaults to 'value'.
+        If an empty string is given then a JSON object will not be used, instead mapping the value directly.
+        E.g. the following XPath 'element/subelement' will be transformed to the following JSONPath:
+                'value': '$.element.subelement.value'
+                '': '$.element.subelement
+        If values is set to '', it could cause problems with elements that contain attributes as there will not be a place to store them. Thus it's
+        recommended that this option is only used when the XML doesn't contain attributes.
         :param attributes: Defines the tag that will precede an XML attribute name in JSONPath. It defaults to an empty
         string, resulting in no difference in the representation of XML elements and attributes into JSON. Can be used to define your own convention.
         E.g. the following XPath '/element/subelement/@attribute will be transformed as follows:
@@ -145,13 +166,13 @@ class XMLSequenceNode(XMLNode):
                           'type': 'array'}
                    }
         if self.sub_nodes:
-            jsonize['itemMappings'] = [sub_node.to_jsonize(attributes=attributes, namespaces=namespaces) for sub_node in self.sub_nodes]
+            jsonize['itemMappings'] = [sub_node.to_jsonize(values=values, attributes=attributes, namespaces=namespaces) for sub_node in self.sub_nodes]
         else:
             # If there are no sub_nodes then we create a single sub_node pointing to the value of each XML element in the sequence.
             jsonize['itemMappings'] = [
                 {'from': {'path': '.',
                           'type': 'value'},
-                 'to': {'path': '@',
+                 'to': {'path': '@' + bool(values) * ('.' + values),
                         'type': 'infer'}
                  }
             ]
@@ -335,8 +356,8 @@ class XMLNodeTree():
         else:
             self.nodes = []
 
-    def to_jsonize(self, attributes: str = '', namespaces: str = 'preserve'):
-        jsonize = [node.to_jsonize(attributes=attributes, namespaces=namespaces) for node in self.nodes]
+    def to_jsonize(self, values: str = 'values', attributes: str = '', namespaces: str = 'preserve'):
+        jsonize = [node.to_jsonize(values=values, attributes=attributes, namespaces=namespaces) for node in self.nodes]
         return jsonize
 
 
