@@ -226,12 +226,13 @@ def xml_document_to_json(xml_document: Path,
     return result
 
 
-def infer_jsonize_map(xml_document: Path, output_map: Path, xml_namespaces: Dict = None, attribute_tag: str = '', keep_namespaces: bool = True) -> None:
+def infer_jsonize_map(xml_document: Path, output_map: Path, xml_namespaces: Dict = None,
+                      value_tag: str = 'value', attribute_tag: str = '', keep_namespaces: bool = True) -> None:
     xml_etree = xml_parse(str(xml_document))
     node_tree = build_node_tree(xml_etree, xml_namespaces=xml_namespaces)
     if keep_namespaces:
-        jsonized = node_tree.to_jsonize(attributes=attribute_tag, namespaces='preserve')
+        jsonized = node_tree.to_jsonize(values=value_tag, attributes=attribute_tag, namespaces='preserve')
     else:
-        jsonized = node_tree.to_jsonize(attributes=attribute_tag, namespaces='ignore')
+        jsonized = node_tree.to_jsonize(values=value_tag, attributes=attribute_tag, namespaces='ignore')
     with output_map.open('w') as output_file:
         dump(jsonized, output_file)
