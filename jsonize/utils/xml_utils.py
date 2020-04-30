@@ -100,7 +100,7 @@ class XMLNode():
             json_path += '.' + values
         jsonize = {'from': {'path': str(self.path),
                             'type': self.node_type.name},
-                   'to': {'path': str(self.path.to_json_path(attributes=attributes, namespaces=namespaces)),
+                   'to': {'path': json_path,
                           'type': 'infer'}}
         return jsonize
 
@@ -356,7 +356,7 @@ class XMLNodeTree():
         else:
             self.nodes = []
 
-    def to_jsonize(self, values: str = 'values', attributes: str = '', namespaces: str = 'preserve'):
+    def to_jsonize(self, values: str = 'value', attributes: str = '', namespaces: str = 'preserve'):
         jsonize = [node.to_jsonize(values=values, attributes=attributes, namespaces=namespaces) for node in self.nodes]
         return jsonize
 
