@@ -109,7 +109,7 @@ class XMLNodeToJSONNode:
         if self.to_json_node.node_type == JSONNodeType['array']:
             items = []
             for element in input_value:
-                item = {}
+                item = None
                 for mapping in self.item_mappings:
                     item = mapping.map(element, item, xml_namespaces)
                 items.append(item)
