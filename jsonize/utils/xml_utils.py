@@ -10,6 +10,7 @@ class XMLNodeType(Enum):
     value = 1
     sequence = 2
     attribute = 3
+    element = 4
 
 
 class XMLNode():
