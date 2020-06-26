@@ -213,17 +213,26 @@ def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
     return current_item
 
 
-def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List]) -> Dict:
+def write_item_in_path(item: Any, in_path: JSONPath, json: Optional[Union[Dict, List]]) -> Dict:
     """
     Attempts to write the given item at the JSONPath location. If an item already exists in the given JSONPath it will
     overwrite it.
     :param item: Item to write
     :param in_path: JSONPath specifying where to write the item.
-    :param json: JSON serializable dictionary or list in which to write the item.
+    :param json: JSON serializable dictionary or list in which to write the item, if None given it will try to infer the
+    right data structure depending on the given JSONPath.
     :raises TypeError: If an item along the in_path is not an object and thus cannot contain child attributes.
     :return: A copy of the input json with the item written in the given JSONPath.
     """
-    json_copy = deepcopy(json)
+    if json is None:
+        if len(in_path.json_path_structure) == 1:
+            json_copy = []
+        elif len(in_path.json_path_structure) == 2 and isinstance(in_path.json_path_structure[1], int):
+            json_copy = []
+        else:
+            json_copy = {}
+    else:
+        json_copy = deepcopy(json)
     parent_path, item_relative_path = in_path.split(-1)
     item_key = item_relative_path.json_path_structure[-1]
 
