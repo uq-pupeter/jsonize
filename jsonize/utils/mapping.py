@@ -1,7 +1,7 @@
 from __future__ import annotations
 from json import load, dump
 from pathlib import Path
-from lxml.etree import parse as xml_parse
+from lxml.etree import parse as xml_parse, ElementTree
 from jsonize.utils.xml_utils import XMLNode, XMLNodeType, build_node_tree
 from jsonize.utils.json_utils import JSONNode, JSONNodeType, JSONPath, write_item_in_path
 from typing import Dict, List, Optional, Callable, Iterable
@@ -43,7 +43,7 @@ class XMLNodeToJSONNode:
             item_mappings = []
         self.item_mappings = item_mappings
 
-    def map(self, xml_etree: etree.ElementTree, json: Dict, xml_namespaces: Dict = None) -> Dict:
+    def map(self, xml_etree: ElementTree, json: Dict, xml_namespaces: Dict = None) -> Dict:
         """
         Maps the XMLNode from xml_etree into the given json serializable dictionary.
         :param xml_etree: An XML ElementTree from which the input XMLNode is to be taken. If the XMLNode is not found in the xml_etree it will be defaulted to
