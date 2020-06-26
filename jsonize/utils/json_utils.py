@@ -213,7 +213,7 @@ def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
     return current_item
 
 
-def write_item_in_path(item: Any, in_path: JSONPath, json: Optional[Union[Dict, List]]) -> Dict:
+def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, None]) -> Dict:
     """
     Attempts to write the given item at the JSONPath location. If an item already exists in the given JSONPath it will
     overwrite it.
