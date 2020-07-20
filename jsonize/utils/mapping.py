@@ -226,6 +226,33 @@ def xml_document_to_dict(xml_document: Path,
     return result
 
 
+def xml_document_to_json_document(xml_document: Path, json_document: Path,
+                                  jsonize_map_document: Optional[Path] = None,
+                                  jsonize_map: Optional[Iterable[XMLNodeToJSONNode]] = None,
+                                  xml_namespaces: Dict = None, json: Optional[Dict] = None,
+                                  transformations: Optional[Iterable[Transformation]] = None) -> None:
+    """
+    Transforms an XML document into a JSON document and saves it in the json_document Path.
+    :param xml_document: A Path to the XML document that is to be converted.
+    :param json_document: A Path defining where to save the JSON document that results from the mapping.
+    :param jsonize_map_document: Path to a JSON file defining the Jsonize map.
+    :param jsonize_map: An iterable of XMLNodeToJSONNode defining the Jsonize mapping.
+    If provided it overrides the parameter jsonize_map_document.
+    :param xml_namespaces: A dictionary defining the XML namespaces with namespace shortname as keys
+    and the full namespace name as values. Follows the xml standard library convention for XML namespaces.
+    :param json: An input dictionary into which the XML document is to be mapped.
+    Defaults to an empty dictionary if none given.
+    :param transformations: An iterable of Transformation that contains the functions that are invoked
+    in the Jsonize mapping.
+    :return: None, the function is pure side-effects.
+    """
+    result = xml_document_to_dict(xml_document=xml_document, jsonize_map_document=jsonize_map_document,
+                                  jsonize_map=jsonize_map, xml_namespaces=xml_namespaces,
+                                  json=json, transformations=transformations)
+    with json_document.open('w') as result_file:
+        result_file.write(dumps(result))
+
+
 def infer_jsonize_map(xml_document: Path, output_map: Path, xml_namespaces: Dict = None,
                       value_tag: str = 'value', attribute_tag: str = '', keep_namespaces: bool = True) -> None:
     xml_etree = xml_parse(str(xml_document))
