@@ -427,3 +427,17 @@ def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) ->
         sequences.append(sequence)
 
     return XMLNodeTree(nodes=build_sequence_tree(sequences, leaves)[1])
+
+
+def find_namespaces(tree: ElementTree, where: str='root') -> Dict[str, str]:
+    """
+    Finds the namespaces defined in the ElementTree of an XML document.
+    :param tree:
+    :param where:
+    :return:
+    """
+    if where == 'root':
+        root = tree.getroot()
+        namespaces = root.nsmap
+        namespaces.pop(None)
+        return namespaces
