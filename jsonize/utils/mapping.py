@@ -22,16 +22,19 @@ class Transformation:
 
 class XMLNodeToJSONNode:
     """
-    Class defining the mapping from an XMLNode to a JSONNode. A mapping is defined by providing the input XMLNode, the output JSONNode and an optional transform
-    function that is to be applied to the input.
-    When the input XMLNode is an XML sequence it accepts an item_mappings parameter that defines how each element of the sequence is to be mapped into an item
-    in the JSON array.
-    :param from_xml_node: The input XML Node, defined by an XPath and the type of XML node ('element', 'attribute', 'sequence').
-    :param to_json_node: The output JSON node to which the input is to be mapped, defined by a JSONPath and and the its type ('string', 'integer', 'number',
-    'array', 'boolean').
-    :param transform: An optional function that takes only one value as input and produces one value as output, it is used to transform the input before writing
-    it to the JSON serializable dictionary. It can be used for string manipulation, unit conversion, type casting, etc...
-    :param item_mappings: An iterable of XMLNodeToJSONNode that defines how each item of a JSON array is to be built from each element in an XML sequence.
+    Class defining the mapping from an XMLNode to a JSONNode. A mapping is defined by providing the input XMLNode,
+    the output JSONNode and an optional transform function that is to be applied to the input.
+    When the input XMLNode is an XML sequence it accepts an item_mappings parameter that defines how each element of the
+     sequence is to be mapped into an item in the JSON array.
+    :param from_xml_node: The input XML Node, defined by an XPath and
+    the type of XML node ('element', 'attribute', 'sequence').
+    :param to_json_node: The output JSON node to which the input is to be mapped, defined by a JSONPath and
+    its type ('string', 'integer', 'number', 'array', 'boolean').
+    :param transform: An optional function that takes only one value as input and produces one value as output,
+    it is used to transform the input before writing it to the JSON serializable dictionary.
+    It can be used for string manipulation, unit conversion, type casting, etc...
+    :param item_mappings: An iterable of XMLNodeToJSONNode that defines how each item of a JSON array is to be built
+    from each element in an XML sequence.
     """
 
     def __init__(self, from_xml_node: XMLNode, to_json_node: JSONNode, transform: Optional[Callable] = None,
@@ -46,11 +49,11 @@ class XMLNodeToJSONNode:
     def map(self, xml_etree: ElementTree, json: Union[Dict, List, None], xml_namespaces: Dict = None) -> Dict:
         """
         Maps the XMLNode from xml_etree into the given json serializable dictionary.
-        :param xml_etree: An XML ElementTree from which the input XMLNode is to be taken. If the XMLNode is not found in the xml_etree it will be defaulted to
-        None.
+        :param xml_etree: An XML ElementTree from which the input XMLNode is to be taken.
+        If the XMLNode is not found in the xml_etree it will be defaulted to None.
         :param json: The JSON serializable dictionary onto which the input is to be mapped.
-        :param xml_namespaces: A dictionary defining the XML namespaces used in the xml_etree, if they are used they must be provided to find the XMLNode via
-        its XPath expression.
+        :param xml_namespaces: A dictionary defining the XML namespaces used in the xml_etree,
+        if they are used they must be provided to find the XMLNode via its XPath expression.
         :return: The JSON serializable dictionary with the input XMLNode mapped.
         """
         if self.from_xml_node.node_type == XMLNodeType['value']:
@@ -144,7 +147,8 @@ def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> XML
     """
     Parses a serialized JSON (Python dictionary) defining a Jsonize node map and creates
     its corresponding XMLNodeToJSONNode mapping.
-    :param node_map: A dictionary containing the serialized representation of a JSON NodeMap as specified in Jsonize Schema.
+    :param node_map: A dictionary containing the serialized representation of a JSON NodeMap as specified
+    in Jsonize Schema.
     :param transformations: A list of Transformation from which the
     :return:
     """
@@ -152,7 +156,8 @@ def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> XML
     to_json_node = JSONNode(node_map['to']['path'], JSONNodeType[node_map['to']['type']])
     try:
         unparsed_item_mappings = node_map['itemMappings']
-        item_mappings = [parse_node_map(item_mapping, transformations) for item_mapping in unparsed_item_mappings]  # type: Optional[List[XMLNodeToJSONNode]]
+        item_mappings = [parse_node_map(item_mapping, transformations) for item_mapping
+                         in unparsed_item_mappings]  # type: Optional[List[XMLNodeToJSONNode]]
     except KeyError:
         item_mappings = None
     try:
@@ -164,7 +169,8 @@ def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> XML
         try:
             transformation = [transf for transf in transformations if transf.name == transformation_name][0]
         except IndexError:
-            raise ValueError(f'The transformation with name "{transformation_name}" cannot be found in the "transformations" parameter.')
+            raise ValueError(f'The transformation with name "{transformation_name}" cannot be found in the '
+                             f'"transformations" parameter.')
     else:
         transformation = None
 
@@ -191,19 +197,24 @@ def parse(jsonize_map: List[Dict], transformations: Optional[List[Transformation
 
 
 def xml_document_to_dict(xml_document: Path,
-                         jsonize_map_document: Optional[Path]=None, jsonize_map: Optional[Iterable[XMLNodeToJSONNode]]=None,
+                         jsonize_map_document: Optional[Path]=None,
+                         jsonize_map: Optional[Iterable[XMLNodeToJSONNode]]=None,
                          xml_namespaces: Dict = None, json: Optional[Dict] = None,
                          transformations: Optional[Iterable[Transformation]]=None) -> Dict:
     """
     Transforms an XML document into a JSON serializable dictionary.
     :param xml_document: A Path to the XML document that is to be converted.
     :param jsonize_map_document: Path to a JSON file defining the Jsonize map.
-    :param jsonize_map: An iterable of XMLNodeToJSONNode defining the Jsonize mapping. If provided it overrides the parameter jsonize_map_document.
-    :param xml_namespaces: A dictionary defining the XML namespaces with namespace shortname as keys and the full namespace name as values. Follows the
-    xml standard library convention for XML namespaces.
-    :param json: An input dictionary into which the XML document is to be mapped. Defaults to an empty dictionary if none given.
-    :param transformations: An iterable of Transformation that contains the functions that are invoked in the Jsonize mapping.
-    :return: A (JSON serializable) Python dictionary containing the items defined in the mappings extracted from the xml_document.
+    :param jsonize_map: An iterable of XMLNodeToJSONNode defining the Jsonize mapping.
+    If provided it overrides the parameter jsonize_map_document.
+    :param xml_namespaces: A dictionary defining the XML namespaces with namespace shortname as keys
+     and the full namespace name as values. Follows the xml standard library convention for XML namespaces.
+    :param json: An input dictionary into which the XML document is to be mapped.
+    Defaults to an empty dictionary if none given.
+    :param transformations: An iterable of Transformation that contains the functions that are invoked
+    in the Jsonize mapping.
+    :return: A (JSON serializable) Python dictionary containing the items defined
+    in the mappings extracted from the xml_document.
     """
     if transformations is None:
         transformations = []
@@ -212,7 +223,8 @@ def xml_document_to_dict(xml_document: Path,
         try:
             assert jsonize_map_document is not None
         except AssertionError:
-            raise ValueError('Jsonize map missing. Must be provided either via the parameter "jsonize_map_document" or "jsonize_map".')
+            raise ValueError('Jsonize map missing. Must be provided either via the parameter "jsonize_map_document" '
+                             'or "jsonize_map".')
         with jsonize_map_document.open('r') as jsonize_map_file:
             jsonize_map = parse(load(jsonize_map_file), transformations)
 
