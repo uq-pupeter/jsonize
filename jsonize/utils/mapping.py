@@ -271,8 +271,8 @@ def infer_jsonize_map(xml_document: Path, output_map: Path, xml_namespaces: Dict
     This function will infer a Jsonize map for a given input xml_document. It does so by applying certain conventions
     of how to map XML nodes into JSON:
     - XML element sequences -> JSON array
-    - XML attribute value -> JSON element
-    - XML element value -> JSON element
+    - XML attribute value -> JSON attribute
+    - XML element value -> JSON attribute
     - Attempts to type cast the value of an XML attribute or element into the right JSON basetype using the Jsonize
     'infer' JSONNodeType.
 
