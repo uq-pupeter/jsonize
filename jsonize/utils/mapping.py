@@ -190,15 +190,15 @@ def parse(jsonize_map: List[Dict], transformations: Optional[List[Transformation
     return node_mappings
 
 
-def xml_document_to_json(xml_document: Path,
+def xml_document_to_dict(xml_document: Path,
                          jsonize_map_document: Optional[Path]=None, jsonize_map: Optional[Iterable[XMLNodeToJSONNode]]=None,
                          xml_namespaces: Dict = None, json: Optional[Dict] = None,
                          transformations: Optional[Iterable[Transformation]]=None) -> Dict:
     """
     Transforms an XML document into a JSON serializable dictionary.
+    :param xml_document: A Path to the XML document that is to be converted.
     :param jsonize_map_document: Path to a JSON file defining the Jsonize map.
     :param jsonize_map: An iterable of XMLNodeToJSONNode defining the Jsonize mapping. If provided it overrides the parameter jsonize_map_document.
-    :param xml_document: A Path to the XML document that is to be converted.
     :param xml_namespaces: A dictionary defining the XML namespaces with namespace shortname as keys and the full namespace name as values. Follows the
     xml standard library convention for XML namespaces.
     :param json: An input dictionary into which the XML document is to be mapped. Defaults to an empty dictionary if none given.
