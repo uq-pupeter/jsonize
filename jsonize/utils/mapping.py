@@ -267,6 +267,43 @@ def xml_document_to_json_document(xml_document: Path, json_document: Path,
 
 def infer_jsonize_map(xml_document: Path, output_map: Path, xml_namespaces: Dict = None,
                       value_tag: str = 'value', attribute_tag: str = '', keep_namespaces: bool = True) -> None:
+    """
+    This function will infer a Jsonize map for a given input xml_document. It does so by applying certain conventions
+    of how to map XML nodes into JSON:
+    - XML element sequences -> JSON array
+    - XML attribute value -> JSON element
+    - XML element value -> JSON element
+    - Attempts to type cast the value of an XML attribute or element into the right JSON basetype using the Jsonize
+    'infer' JSONNodeType.
+
+    It offers a few ways to fine-tune the Jsonize map to fit different conventions via the parameters:
+    - value_tag: Specifies the key name of an XML element value. It defaults to the string 'value'.
+    - attribute_tag: Specifies how to identify in the output JSON the keys coming from an XML attribute. By default
+    no particular differentiation is made but you can keep track of which output keys come from attributes with this
+    parameter. E.g.: setting 'attribute_tag' to '@' will preprend the '@' symbol to all attribute names.
+    - keep_namespaces: XML element and attribute names are namespaced. This parameters controls if these namespaces
+    should be kept as part of the key names of the output JSON. A True value will result in key names of the form
+    'ns:elementName' where ns is the shortname of the namespace. This will prevent name collisions in the output JSON
+    as there is no notion of namespace in JSON. If name collisions are not expected it may be set to False safely.
+
+    Example:
+    The following examples illustrate how the 3 parameters control the output
+    - Parameters: value_tag='val', attribute_tag='_', keep_namespaces=True
+    -- Input: <ns:element attrib="hi">42</ns:element>
+    -- Output: {'ns:element': {'_attrib': 'hi', 'val': 42}}
+
+    - Parameters: value_tag='value', attribute_tag='', keep_namespaces=False
+    -- Input: <ns:element attrib="hi">42</ns:element>
+    -- Output: {'element': {'attrib': 'hi', 'value': 42}}
+    :param xml_document:
+    :param output_map:
+    :param xml_namespaces:
+    :param value_tag: Specifies the key name of XML element values, it defaults to the string 'value'
+    :param attribute_tag: Specifies a string to prepend in the key name of XML attribute values, it defaults to the
+    empty string.
+    :param keep_namespaces: Specifies if XML namespaces should be kept in the JSON output, it defaults to True.
+    :return:
+    """
     xml_etree = xml_parse(str(xml_document))
     node_tree = build_node_tree(xml_etree, xml_namespaces=xml_namespaces)
     if keep_namespaces:
