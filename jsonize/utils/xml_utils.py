@@ -429,15 +429,15 @@ def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) ->
     return XMLNodeTree(nodes=build_sequence_tree(sequences, leaves)[1])
 
 
-def find_namespaces(tree: ElementTree, where: str='root') -> Dict[str, str]:
+def find_namespaces(tree: ElementTree) -> Dict[str, str]:
     """
-    Finds the namespaces defined in the ElementTree of an XML document.
-    :param tree:
-    :param where:
-    :return:
+    Finds the namespaces defined in the ElementTree of an XML document. It looks for namespaces defined
+    in the root element of the XML document. To avoid namespaces being left out, they shall all be defined in
+    the root element of an XML document, instead of being defined across the document.
+    :param tree: An lxml ElementTree containing the XML document from which to extract the namespaces.
+    :return: A dictionary containing the mapping between short namespace and full namespace.
     """
-    if where == 'root':
-        root = tree.getroot()
-        namespaces = root.nsmap
-        namespaces.pop(None)
-        return namespaces
+    root = tree.getroot()
+    namespaces = root.nsmap
+    namespaces.pop(None)
+    return namespaces
