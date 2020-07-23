@@ -347,7 +347,7 @@ class XPath():
 class XMLNodeTree():
     """
     A representation of an XML node tree, organized around sequences and leaves. The whole XML structure is expressed
-    as XML leaf nodes and XML sequences, if any, serve as branch points in the tree.
+    as XML leaf nodes. XML sequences, if any, serve as branch points in the tree.
     This mimics the Jsonize mapping structure and is used to infer the Jsonize mapping of a given XML.
     :param nodes: An iterable of XMLNode.
     """
@@ -363,6 +363,14 @@ class XMLNodeTree():
 
 
 def get_short_namespace(full_ns: str, xml_namespaces: Dict[str, str]) -> str:
+    """
+    Inverse search of a short namespace by its full namespace value.
+    :param full_ns: The full namespace of which the abbreviated namespace is to be found.
+    :param xml_namespaces: A dicionary containing the mapping between short namespace (keys) and
+    long namespace (values).
+    :return: If the full namespace is found in the dictionary, returns the short namespace.
+    :raise KeyError: If the full namespace is not found in the dictionary.
+    """
     for key, value in xml_namespaces.items():
         if full_ns == value:
             return key
@@ -370,6 +378,12 @@ def get_short_namespace(full_ns: str, xml_namespaces: Dict[str, str]) -> str:
 
 
 def generate_node_xpaths(root: ElementTree, xml_namespaces: Dict[str, str] = None) -> Iterable[XPath]:
+    """
+    Generator that yields all XPaths of an XML document.
+    :param root: The ElementTree of the document.
+    :param xml_namespaces: A dictionary containing the mapping of the namespaces.
+    :return: A generator that yields all the possible XPaths.
+    """
     all_elements = root.iterfind('//*')  # type: Iterable[ElementTree]
     for element in all_elements:
         element_path = root.getpath(element)
@@ -380,6 +394,12 @@ def generate_node_xpaths(root: ElementTree, xml_namespaces: Dict[str, str] = Non
 
 
 def generate_nodes(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> Iterable[XMLNode]:
+    """
+    Generator that yields all possible XMLNode of an XML document.
+    :param tree: The ElementTree of the XML document, containing its root Element.
+    :param xml_namespaces: A dictionary containing the mapping of the namespaces.
+    :return: A generator that yields all the possible XMLNode.
+    """
     root = tree.getroot()
     root_xpath = XPath(tree.getpath(root))
     for xpath in generate_node_xpaths(tree, xml_namespaces):
@@ -388,7 +408,8 @@ def generate_nodes(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> 
         yield XMLNode(xpath=cleaned_xpath, node_type=xpath._infer_node_type())
 
 
-def build_sequence_tree(sequence_nodes: List[XMLNode], leaf_nodes: List[Union[XMLNode, XMLSequenceNode]]) -> Tuple[List[XMLNode], List[XMLNode]]:
+def build_sequence_tree(sequence_nodes: List[XMLNode],
+                        leaf_nodes: List[Union[XMLNode, XMLSequenceNode]]) -> Tuple[List[XMLNode], List[XMLNode]]:
     if not sequence_nodes:
         return sequence_nodes, leaf_nodes
 
@@ -412,6 +433,12 @@ def build_sequence_tree(sequence_nodes: List[XMLNode], leaf_nodes: List[Union[XM
 
 
 def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> XMLNodeTree:
+    """
+    Builds an XMLNodeTree from the XML ElementTree
+    :param tree: The ElementTree of the XML document, containing its root Element.
+    :param xml_namespaces: A dictionary containing the mapping of the namespaces.
+    :return: The XMLNodeTree of the input ElementTree.
+    """
     root_xpath = XPath(tree.getpath(tree.getroot()))
     all_nodes = set(generate_nodes(tree, xml_namespaces))
     sequence_node_xpaths = set()
