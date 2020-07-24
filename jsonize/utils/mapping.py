@@ -1,5 +1,5 @@
 from __future__ import annotations
-from json import load, dump
+from json import load, dump, dumps
 from pathlib import Path
 from lxml.etree import parse as xml_parse, ElementTree
 from jsonize.utils.xml_utils import XMLNode, XMLNodeType, build_node_tree
