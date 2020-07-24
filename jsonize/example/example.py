@@ -1,4 +1,4 @@
-from jsonize import xml_document_to_json, Transformation
+from jsonize import xml_document_to_dict, Transformation
 from pathlib import Path
 from json import dumps
 import re
@@ -15,7 +15,7 @@ def text_cleanup(text: str) -> str:
     return re.sub(r'\s{2,}', ' ', text)
 
 
-result = xml_document_to_json(xml_document=Path('./input.xml'),
+result = xml_document_to_dict(xml_document=Path('./input.xml'),
                               jsonize_map_document=Path('./example_jsonize_mapping.json'),
                               transformations=[Transformation('text_cleanup', text_cleanup)])
 
