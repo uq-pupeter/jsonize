@@ -1,0 +1,10 @@
+name: jsonize
+dependencies:
+- python
+- pytest
+- pytest-cov
+- python-dateutil
+- pip:
+  - jsonschema
+  - pyparsing
+  - lxml

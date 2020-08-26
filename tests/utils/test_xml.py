@@ -1,6 +1,6 @@
 import unittest
-from jsonize.utils.xml_utils import XPath, XMLNode, XMLNodeType, get_short_namespace
-from jsonize.utils.json_utils import JSONPath
+from jsonize.utils.xml import XPath, XMLNode, XMLNodeType, get_short_namespace
+from jsonize.utils.json import JSONPath
 
 
 class TestNamespaceSubstitution(unittest.TestCase):
@@ -67,33 +67,33 @@ class TestInferJsonPath(unittest.TestCase):
     def test_absolute_path(self):
         xpath = XPath('/adrmsg:ADRMessage/adrmsg:hasMember/aixm:Route/@gml:id')
         reference = JSONPath('$.adrmsg:ADRMessage.adrmsg:hasMember.aixm:Route.@gml:id')
-        self.assertEqual(reference, xpath.to_json_path(attributes='@', namespaces='preserve'))
+        self.assertEqual(reference, xpath.to_json_path(attributes='@', with_namespaces=True))
 
     def test_relative_path(self):
         xpath = XPath('./adrmsg:ADRMessage/adrmsg:hasMember/aixm:Route/@gml:id')
         reference = JSONPath('@.adrmsg:ADRMessage.adrmsg:hasMember.aixm:Route.@gml:id')
-        self.assertEqual(reference, xpath.to_json_path(attributes='@', namespaces='preserve'))
+        self.assertEqual(reference, xpath.to_json_path(attributes='@', with_namespaces=True))
 
     def test_ignore_namespaces(self):
         xpath = XPath('/adrmsg:ADRMessage/adrmsg:hasMember/aixm:Route/@gml:id')
         reference = JSONPath('$.ADRMessage.hasMember.Route.@id')
-        self.assertEqual(reference, xpath.to_json_path(attributes='@', namespaces='ignore'))
+        self.assertEqual(reference, xpath.to_json_path(attributes='@', with_namespaces=False))
 
     def test_change_attribute_tag(self):
         with self.subTest():
             xpath = XPath('/adrmsg:ADRMessage/adrmsg:hasMember/aixm:Route/@gml:id')
             reference = JSONPath('$.ADRMessage.hasMember.Route._id')
-            self.assertEqual(reference, xpath.to_json_path(attributes='_', namespaces='ignore'))
+            self.assertEqual(reference, xpath.to_json_path(attributes='_', with_namespaces=False))
 
         with self.subTest():
             xpath = XPath('/adrmsg:ADRMessage/adrmsg:hasMember/aixm:Route/@gml:id')
             reference = JSONPath('$.ADRMessage.hasMember.Route.id')
-            self.assertEqual(reference, xpath.to_json_path(attributes='', namespaces='ignore'))
+            self.assertEqual(reference, xpath.to_json_path(attributes='', with_namespaces=False))
 
         with self.subTest():
             xpath = XPath('/adrmsg:ADRMessage/adrmsg:hasMember/aixm:Route/@gml:id')
             reference = JSONPath('$.adrmsg:ADRMessage.adrmsg:hasMember.aixm:Route.attrib_gml:id')
-            self.assertEqual(reference, xpath.to_json_path(attributes='attrib_', namespaces='preserve'))
+            self.assertEqual(reference, xpath.to_json_path(attributes='attrib_', with_namespaces=True))
 
 
 class TestXPathRelations(unittest.TestCase):
@@ -102,31 +102,31 @@ class TestXPathRelations(unittest.TestCase):
         with self.subTest():
             ancestor = XPath('/root/element')
             descendant = XPath('/root/element/subelement/leaf/@attribute')
-            self.assertTrue(descendant.is_descendant(ancestor))
+            self.assertTrue(descendant.is_descendant_of(ancestor))
 
         with self.subTest():
             ancestor = XPath('/root/element')
             not_descendant = XPath('/root/otherElement/subelement/leaf')
-            self.assertFalse(not_descendant.is_descendant(ancestor))
+            self.assertFalse(not_descendant.is_descendant_of(ancestor))
 
         with self.subTest():
             ancestor = XPath('/root/element')
             not_descendant = XPath('/root/elemental')
-            self.assertFalse(not_descendant.is_descendant(ancestor))
+            self.assertFalse(not_descendant.is_descendant_of(ancestor))
 
     def test_is_leaf(self):
-        all_nodes = [XMLNode('/root/element/@attrib', XMLNodeType['attribute']),
-                     XMLNode('/root/element/subelement/subsubelement', XMLNodeType['element']),
-                     XMLNode('/root/anotherElement', XMLNodeType['element']),
-                     XMLNode('/root/element', XMLNodeType['element'])]
+        all_nodes = [XMLNode('/root/element/@attrib', XMLNodeType.ATTRIBUTE),
+                     XMLNode('/root/element/subelement/subsubelement', XMLNodeType.ELEMENT),
+                     XMLNode('/root/anotherElement', XMLNodeType.ELEMENT),
+                     XMLNode('/root/element', XMLNodeType.ELEMENT)]
         with self.subTest():
-            self.assertTrue(XMLNode('/root/element/@attrib', XMLNodeType['attribute']).is_leaf(all_nodes))
+            self.assertTrue(XMLNode('/root/element/@attrib', XMLNodeType.ATTRIBUTE).is_leaf(all_nodes))
         with self.subTest():
-            self.assertTrue(XMLNode('/root/element/subelement/subsubelement', XMLNodeType['element']).is_leaf(all_nodes))
+            self.assertTrue(XMLNode('/root/element/subelement/subsubelement', XMLNodeType.ELEMENT).is_leaf(all_nodes))
         with self.subTest():
-            self.assertTrue(XMLNode('/root/anotherElement', XMLNodeType['element']).is_leaf(all_nodes))
+            self.assertTrue(XMLNode('/root/anotherElement', XMLNodeType.ELEMENT).is_leaf(all_nodes))
         with self.subTest():
-            self.assertFalse(XMLNode('/root/element', XMLNodeType['element']).is_leaf(all_nodes))
+            self.assertFalse(XMLNode('/root/element', XMLNodeType.ELEMENT).is_leaf(all_nodes))
 
 if __name__ == '__main__':
     unittest.main()

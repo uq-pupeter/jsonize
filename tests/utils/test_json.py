@@ -1,4 +1,4 @@
-from jsonize.utils.json_utils import get_item_from_json_path, write_item_in_path, JSONPath
+from jsonize.utils.json import get_item_from_json_path, write_item_in_path, JSONPath
 from copy import deepcopy
 import unittest
 
