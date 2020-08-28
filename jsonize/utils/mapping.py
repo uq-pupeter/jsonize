@@ -135,7 +135,7 @@ class XMLNodeToJSONNode:
             input_value = xml_etree.findall(str(self.from_xml_node.path), xml_namespaces)
         else:
             raise NotImplementedError(
-                f"Mapping not implemented for: {self.from_xml_node.node_type.name}")
+                f"Mapping not implemented for XML {self.from_xml_node.node_type.value}")
 
         if self.transform:
             input_value = self.transform(input_value)

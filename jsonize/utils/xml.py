@@ -65,7 +65,7 @@ class XMLNode():
         self.node_type = node_type
 
     def __repr__(self):
-        return f'XML {self.node_type.name} at {self.path}'
+        return f'XML {self.node_type.value} at {self.path}'
 
     def __eq__(self, other):
         return other and other.path == self.path and other.node_type == self.node_type
@@ -185,7 +185,7 @@ class XMLNode():
         return {
             'from': {
                 'path': str(self.path),
-                'type': self.node_type.name},
+                'type': self.node_type.value},
             'to': {
                 'path': json_path,
                 'type': 'infer'
@@ -281,7 +281,7 @@ class XMLSequenceNode(XMLNode):
         jsonize = {
             'from': {
                 'path': str(self.path),
-                'type': self.node_type.name},
+                'type': self.node_type.value},
             'to': {
                'path': str(self.path.to_json_path(attributes=attributes,
                                                   with_namespaces=with_namespaces)),
