@@ -1,5 +1,5 @@
 import unittest
-from jsonize.utils.xml import XPath, XMLNode, XMLNodeType, get_short_namespace
+from jsonize.utils.xml import XPath, XMLNode, XMLNodeType, XMLSequenceNode, XMLNodeTree, get_short_namespace
 from jsonize.utils.json import JSONPath
 
 
@@ -59,7 +59,6 @@ class TestXPathManipulations(unittest.TestCase):
             with self.subTest():
                 xpath.relative_to(parent, in_place=True)
                 self.assertEqual(xpath, reference)
-
 
 
 class TestInferJsonPath(unittest.TestCase):
@@ -127,6 +126,140 @@ class TestXPathRelations(unittest.TestCase):
             self.assertTrue(XMLNode('/root/anotherElement', XMLNodeType.ELEMENT).is_leaf(all_nodes))
         with self.subTest():
             self.assertFalse(XMLNode('/root/element', XMLNodeType.ELEMENT).is_leaf(all_nodes))
+
+
+class TestJsonizeMapGeneration(unittest.TestCase):
+    xml_attribute_node = XMLNode('/ns:root/nss:element/@nss:attrib', XMLNodeType.ATTRIBUTE)
+    xml_value_node = XMLNode('/ns:root/nss:element/nss:subelement/ns:subsubelement', XMLNodeType.VALUE)
+    xml_sequence_node = XMLSequenceNode('/ns:root/nss:element/nss:subelement/ns:subsubelement',
+                                        [XMLNode('./child', XMLNodeType.VALUE),
+                                         XMLNode('./@nss:attrib', XMLNodeType.ATTRIBUTE)])
+    xml_empty_sequence_node = XMLSequenceNode('/ns:root/nss:element/nss:subelement/ns:subsubelement',
+                                              [])
+    xml_tree = XMLNodeTree([xml_attribute_node,
+                            xml_value_node,
+                            xml_sequence_node])
+
+    def test_xml_attribute_jsonize(self):
+        with self.subTest():
+            self.assertEqual(self.xml_attribute_node.to_jsonize(attributes='@', with_namespaces=True),
+                             {'from': {'path': '/ns:root/nss:element/@nss:attrib',
+                                       'type': 'attribute'},
+                              'to': {'path': '$.ns:root.nss:element.@nss:attrib',
+                                     'type': 'infer'}})
+        with self.subTest():
+            self.assertEqual(self.xml_attribute_node.to_jsonize(attributes='', with_namespaces=True),
+                             {'from': {'path': '/ns:root/nss:element/@nss:attrib',
+                                       'type': 'attribute'},
+                              'to': {'path': '$.ns:root.nss:element.nss:attrib',
+                                     'type': 'infer'}})
+        with self.subTest():
+            self.assertEqual(self.xml_attribute_node.to_jsonize(attributes='', with_namespaces=False),
+                             {'from': {'path': '/ns:root/nss:element/@nss:attrib',
+                                       'type': 'attribute'},
+                              'to': {'path': '$.root.element.attrib',
+                                     'type': 'infer'}})
+
+    def test_xml_value_jsonize(self):
+        with self.subTest():
+            self.assertEqual(self.xml_value_node.to_jsonize(attributes='@', with_namespaces=True),
+                             {'from': {'path': '/ns:root/nss:element/nss:subelement/ns:subsubelement',
+                                       'type': 'value'},
+                              'to': {'path': '$.ns:root.nss:element.nss:subelement.ns:subsubelement.value',
+                                     'type': 'infer'}})
+        with self.subTest():
+            self.assertEqual(self.xml_value_node.to_jsonize(values='', with_namespaces=True),
+                             {'from': {'path': '/ns:root/nss:element/nss:subelement/ns:subsubelement',
+                                       'type': 'value'},
+                              'to': {'path': '$.ns:root.nss:element.nss:subelement.ns:subsubelement',
+                                     'type': 'infer'}})
+
+    def test_xml_sequence_jsonize(self):
+        with self.subTest():
+            self.assertEqual(self.xml_sequence_node.to_jsonize(values='', with_namespaces=True),
+                             {'from': {'path': '/ns:root/nss:element/nss:subelement/ns:subsubelement',
+                                       'type': 'sequence'},
+                              'to': {'path': '$.ns:root.nss:element.nss:subelement.ns:subsubelement',
+                                     'type': 'array'},
+                              'itemMappings': [
+                                  {'from': {'path': './child',
+                                            'type': 'value'},
+                                   'to': {'path': '@.child',
+                                          'type': 'infer'}
+                                   },
+                                  {'from': {'path': './@nss:attrib',
+                                            'type': 'attribute'},
+                                   'to': {'path': '@.nss:attrib',
+                                          'type': 'infer'}
+                                   }
+                              ]
+                              }
+                             )
+
+        with self.subTest():
+            self.assertEqual(self.xml_empty_sequence_node.to_jsonize(values='', with_namespaces=True),
+                             {'from': {'path': '/ns:root/nss:element/nss:subelement/ns:subsubelement',
+                                       'type': 'sequence'},
+                              'to': {'path': '$.ns:root.nss:element.nss:subelement.ns:subsubelement',
+                                     'type': 'array'},
+                              'itemMappings': [
+                                  {'from': {'path': '.',
+                                            'type': 'value'},
+                                   'to': {'path': '@',
+                                          'type': 'infer'}
+                                   }
+                              ]
+                              })
+
+        with self.subTest():
+            self.assertEqual(self.xml_empty_sequence_node.to_jsonize(values='value', attributes='_', with_namespaces=False),
+                             {'from': {'path': '/ns:root/nss:element/nss:subelement/ns:subsubelement',
+                                       'type': 'sequence'},
+                              'to': {'path': '$.root.element.subelement.subsubelement',
+                                     'type': 'array'},
+                              'itemMappings': [
+                                  {'from': {'path': '.',
+                                            'type': 'value'},
+                                   'to': {'path': '@.value',
+                                          'type': 'infer'}
+                                   }
+                              ]
+                              })
+
+    def test_xml_tree_jsonize(self):
+        with self.subTest():
+            self.assertEqual(self.xml_tree.to_jsonize('value', attributes='@', with_namespaces=True),
+                             [
+                                 {'from': {'path': '/ns:root/nss:element/@nss:attrib',
+                                           'type': 'attribute'},
+                                  'to': {'path': '$.ns:root.nss:element.@nss:attrib',
+                                         'type': 'infer'}
+                                  },
+                                 {'from': {'path': '/ns:root/nss:element/nss:subelement/ns:subsubelement',
+                                           'type': 'value'},
+                                  'to': {'path': '$.ns:root.nss:element.nss:subelement.ns:subsubelement.value',
+                                         'type': 'infer'}
+                                  },
+                                 {'from': {'path': '/ns:root/nss:element/nss:subelement/ns:subsubelement',
+                                           'type': 'sequence'},
+                                  'to': {'path': '$.ns:root.nss:element.nss:subelement.ns:subsubelement',
+                                         'type': 'array'},
+                                  'itemMappings': [
+                                      {'from': {'path': './child',
+                                                'type': 'value'},
+                                       'to': {'path': '@.child.value',
+                                              'type': 'infer'}
+                                       },
+                                      {'from': {'path': './@nss:attrib',
+                                                'type': 'attribute'},
+                                       'to': {'path': '@.@nss:attrib',
+                                              'type': 'infer'}
+                                       }
+                                  ]
+                                  }
+                             ]
+                             )
+
 
 if __name__ == '__main__':
     unittest.main()
