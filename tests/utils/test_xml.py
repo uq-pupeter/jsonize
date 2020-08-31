@@ -1,6 +1,9 @@
 import unittest
-from jsonize.utils.xml import XPath, XMLNode, XMLNodeType, XMLSequenceNode, XMLNodeTree, get_short_namespace
+from jsonize.utils.xml import XPath, XMLNode, XMLNodeType, XMLSequenceNode, XMLNodeTree, \
+    get_short_namespace, find_namespaces, generate_node_xpaths
 from jsonize.utils.json import JSONPath
+from pathlib import Path
+from lxml.etree import parse as xml_parse
 
 
 class TestNamespaceSubstitution(unittest.TestCase):
@@ -126,6 +129,67 @@ class TestXPathRelations(unittest.TestCase):
             self.assertTrue(XMLNode('/root/anotherElement', XMLNodeType.ELEMENT).is_leaf(all_nodes))
         with self.subTest():
             self.assertFalse(XMLNode('/root/element', XMLNodeType.ELEMENT).is_leaf(all_nodes))
+
+    def test_is_attribute(self):
+        attribute_node = XPath('/root/element/@attribute')
+        ns_attribute_node = XPath('/ns:root/nss:element/@nss:attribute')
+        element_node = XPath('root/element')
+        with self.subTest():
+            self.assertTrue(attribute_node.is_attribute())
+        with self.subTest():
+            self.assertTrue(ns_attribute_node.is_attribute())
+        with self.subTest():
+            self.assertFalse(element_node.is_attribute())
+
+    def test_is_absolute(self):
+        absolute_xpath = XPath('/root/element/subelement')
+        relative_xpath = XPath('./element/@attribute')
+        with self.subTest():
+            self.assertTrue(absolute_xpath.is_absolute())
+        with self.subTest():
+            self.assertFalse(relative_xpath.is_absolute())
+
+    def test_is_relative(self):
+        absolute_xpath = XPath('/root/element/subelement')
+        relative_xpath = XPath('./element/@attribute')
+        with self.subTest():
+            self.assertFalse(absolute_xpath.is_relative())
+        with self.subTest():
+            self.assertTrue(relative_xpath.is_relative())
+
+    def test_attribute_name(self):
+        attribute_xpath = XPath('./element/@attri')
+        absolute_attribute_xpath = XPath('/ns:root/nss:element/@nss:attribute')
+        element_xpath = XPath('/root/element/subelement')
+        with self.subTest():
+            self.assertEqual(attribute_xpath.attribute_name(), 'attri')
+        with self.subTest():
+            self.assertEqual(absolute_attribute_xpath.attribute_name(), 'nss:attribute')
+        with self.subTest():
+            with self.assertRaises(ValueError):
+                element_xpath.attribute_name()
+
+    def test_parent(self):
+        absolute_attribute_xpath = XPath('/ns:root/nss:element/@nss:attribute')
+        relative_element_xpath = XPath('./element/subelement')
+        with self.subTest():
+            self.assertEqual(absolute_attribute_xpath.parent(), XPath('/ns:root/nss:element'))
+        with self.subTest():
+            self.assertEqual(relative_element_xpath.parent(), XPath('./element'))
+
+    def test_split(self):
+        absolute_attribute_xpath = XPath('/ns:root/nss:element/@nss:attribute')
+        relative_element_xpath = XPath('./element/subelement')
+        with self.subTest():
+            # TODO: Evaluate if the numbering convention is appropriate
+            self.assertEqual(absolute_attribute_xpath.split(1), (XPath(''), XPath('./ns:root/nss:element/@nss:attribute')))
+            self.assertEqual(absolute_attribute_xpath.split(2), (XPath('/ns:root'), XPath('./nss:element/@nss:attribute')))
+        with self.subTest():
+            self.assertEqual(relative_element_xpath.split(1), (XPath('.'), XPath('./element/subelement')))
+            self.assertEqual(relative_element_xpath.split(2), (XPath('./element'), XPath('./subelement')))
+        with self.subTest():
+            with self.assertRaises(ValueError):
+                relative_element_xpath.split(-1)
 
 
 class TestJsonizeMapGeneration(unittest.TestCase):
@@ -259,6 +323,76 @@ class TestJsonizeMapGeneration(unittest.TestCase):
                                   }
                              ]
                              )
+
+
+class TestXMLNodeManipulations(unittest.TestCase):
+    xml_node = XMLNode('/root/element', XMLNodeType.ELEMENT)
+    deep_xml_sequence = XMLSequenceNode('/root/element/subelement/sequence',
+                                        sub_nodes=[XMLNode('./@attribute', XMLNodeType.ATTRIBUTE),
+                                                   XMLNode('./value', XMLNodeType.VALUE)])
+    deep_attribute = XMLNode('/root/element/subelement/@attrib', XMLNodeType.ATTRIBUTE)
+
+    def test_sequence_relative_to(self):
+        with self.subTest():
+            self.assertEqual(self.deep_xml_sequence.relative_to(self.xml_node, in_place=False),
+                             XMLSequenceNode('./subelement/sequence',
+                                             sub_nodes=[XMLNode('./@attribute', XMLNodeType.ATTRIBUTE),
+                                                        XMLNode('./value', XMLNodeType.VALUE)])
+                             )
+        with self.subTest():
+            self.deep_xml_sequence.relative_to(self.xml_node, in_place=True)
+            self.assertEqual(self.deep_xml_sequence,
+                             XMLSequenceNode('./subelement/sequence',
+                                             sub_nodes=[XMLNode('./@attribute', XMLNodeType.ATTRIBUTE),
+                                                        XMLNode('./value', XMLNodeType.VALUE)])
+                             )
+
+    def test_node_relative_to(self):
+        with self.subTest():
+            self.assertEqual(self.deep_attribute.relative_to(self.xml_node, in_place=False),
+                             XMLNode('./subelement/@attrib', XMLNodeType.ATTRIBUTE)
+                             )
+
+        with self.subTest():
+            self.deep_attribute.relative_to(self.xml_node, in_place=True)
+            self.assertEqual(self.deep_attribute,
+                             XMLNode('./subelement/@attrib', XMLNodeType.ATTRIBUTE)
+                             )
+
+
+class TestFindNamespaces(unittest.TestCase):
+
+    def test_exist_namespaces(self):
+        xml_tree = xml_parse(str(Path('../samples/sample_namespaced.xml')))
+        xml_namespaces = {'message': 'http://www.aixm.aero/schema/5.1.1/message', 'gts': 'http://www.isotc211.org/2005/gts',
+                          'gco': 'http://www.isotc211.org/2005/gco', 'xsd': 'http://www.w3.org/2001/XMLSchema',
+                          'gml': 'http://www.opengis.net/gml/3.2', 'gss': 'http://www.isotc211.org/2005/gss',
+                          'aixm': 'http://www.aixm.aero/schema/5.1.1', 'gsr': 'http://www.isotc211.org/2005/gsr',
+                          'gmd': 'http://www.isotc211.org/2005/gmd', 'xlink': 'http://www.w3.org/1999/xlink',
+                          'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        self.assertEqual(find_namespaces(xml_tree), xml_namespaces)
+
+    def test_no_namespaces(self):
+        xml_tree = xml_parse(str(Path('../samples/sample_no_namespace.xml')))
+        xml_namespaces = {}
+        self.assertEqual(find_namespaces(xml_tree), xml_namespaces)
+
+
+class TestXPathGeneration(unittest.TestCase):
+
+    def test_node_xpaths(self):
+        xml_tree = xml_parse(str(Path('../samples/sample_no_namespace.xml')))
+        xpath_set = {XPath('/catalog/book[1]'),
+                     XPath('/catalog/book[1]/@id'), XPath('/catalog/book[1]/author'), XPath('/catalog/book[1]/title'), XPath('/catalog/book[1]/genre'),
+                     XPath('/catalog/book[1]/price'), XPath('/catalog/book[1]/publish_date'), XPath('/catalog/book[1]/description'),
+                     XPath('/catalog/book[2]'),
+                     XPath('/catalog/book[2]/@id'), XPath('/catalog/book[2]/author'), XPath('/catalog/book[2]/title'), XPath('/catalog/book[2]/genre'),
+                     XPath('/catalog/book[2]/price'), XPath('/catalog/book[2]/publish_date'), XPath('/catalog/book[2]/description')}
+        with self.subTest():
+            self.assertCountEqual(xpath_set, generate_node_xpaths(xml_tree))
+        with self.subTest():
+            self.assertSetEqual(xpath_set, set(generate_node_xpaths(xml_tree)))
+
 
 
 if __name__ == '__main__':
