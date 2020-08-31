@@ -372,10 +372,9 @@ class XPath():
 
     def split(self, at: int) -> Tuple[XPath, XPath]:
         """
-        Produces an absolute and a relative Xpath by splitting the current one at the given index
-        location.
-
-        :param at: Index position where to split the XPath.
+        Splits an Xpath at the given index location.
+        :param at: Index position where to split the XPath. Follows similar convention as python
+        slice syntax. The at value is not included into the first XPath.
         :return: Tuple of XPath, the first one being the absolute path before the split at location
                  and the second one the relative XPath after the split location.
         """
