@@ -654,5 +654,8 @@ def find_namespaces(tree: ElementTree) -> Dict[str, str]:
     """
     root = tree.getroot()
     namespaces = root.nsmap
-    namespaces.pop(None)
+    try:
+        namespaces.pop(None)
+    except KeyError:
+        pass
     return namespaces
