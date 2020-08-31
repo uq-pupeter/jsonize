@@ -379,8 +379,11 @@ class XPath():
         :return: Tuple of XPath, the first one being the absolute path before the split at location
                  and the second one the relative XPath after the split location.
         """
-        return (XPath('/'.join(self._xpath_structure[:at])),
-                XPath('/'.join(['.'] + self._xpath_structure[at:])))
+        if at > 0:
+            return (XPath('/'.join(self._xpath_structure[:at])),
+                    XPath('/'.join(['.'] + self._xpath_structure[at:])))
+        else:
+            raise ValueError(f"at={at} parameter should be greater than 0.")
 
     def to_json_path(self, attributes: str = '', with_namespaces: bool = True) -> JSONPath:
         """
