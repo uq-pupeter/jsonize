@@ -417,8 +417,15 @@ class XPath():
         json_path = re.sub(r'^\./', '@/', json_path)
         json_path = re.sub(r'^/', '$/', json_path)
         json_path = re.sub(r'/', '.', json_path)
-
-        return JSONPath(json_path)
+        json_path = JSONPath(json_path)
+        json_path_structure = []
+        for path_key in json_path.json_path_structure:
+            if isinstance(path_key, int):
+                if path_key <= 0:
+                    raise ValueError(f"An XPath expression cannot contain an index <= 0, xpath= {self}")
+                path_key += -1
+            json_path_structure.append(path_key)
+        return JSONPath.from_json_path_structure(json_path_structure)
 
     def relative_to(self, ancestor: XPath, in_place: bool = True) -> Union[None, XPath]:
         """
