@@ -262,6 +262,32 @@ def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
     return current_item
 
 
+def _write_item_in_array(item: Any, in_path: JSONPath, json: Union[Dict, List]) -> Union[Dict, List]:
+    if not isinstance(in_path.json_path_structure[-1], int):
+        raise ValueError(f"Cannot write item into array, {in_path} doesn't point to an array entry.")
+    array_path, relative_path = in_path.split(-1)
+    array = get_item_from_json_path(array_path, json)
+    if array is None:
+        array = []
+    array_length = len(array)
+    if in_path.json_path_structure[-1] == -1:
+        array.append(item)
+    elif in_path.json_path_structure[-1] < -1 or in_path.json_path_structure[-1] > array_length:
+        raise IndexError(f"Cannot write item into array, {in_path} index is out of bounds.")
+    else:
+        array.insert(in_path.json_path_structure[-1], item)
+    return json
+
+
+def _write_item_in_dict(item: Any, in_path: JSONPath, json: Union[Dict, List]) -> Union[Dict, List]:
+    if not isinstance(in_path.json_path_structure[-1], str):
+        raise ValueError(f"Cannot write item into dictionary, {in_path} doesn't point to a dictionary key.")
+    parent_path, relative_path = in_path.split(-1)
+    parent = get_item_from_json_path(parent_path, json)
+    parent.insert(in_path.json_path_structure[-1], item)
+    return json
+
+
 def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, None]) -> Dict:
     """
     Attempts to write the given item at the JSONPath location. If an item already exists in the
