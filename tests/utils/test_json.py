@@ -1,4 +1,4 @@
-from jsonize.utils.json import get_item_from_json_path, write_item_in_path, JSONPath
+from jsonize.utils.json import get_item_from_json_path, write_item_in_path, JSONPath, _write_item_in_array
 from copy import deepcopy
 import unittest
 
@@ -123,17 +123,17 @@ class TestWriteItemJSONPath(unittest.TestCase):
             reference = {'key1': True,
                          'key2': {'key3': [{'key4': 42}, {'key5': 43}]}
                          }
-            result = write_item_in_path({'key5': 43}, JSONPath('$.key2.key3[-1]'), deepcopy(initial))
+            result = _write_item_in_array({'key5': 43}, JSONPath('$.key2.key3[-1]'), initial)
             self.assertEqual(reference, result)
         with self.subTest('write item in array at root'):
             initial = []
             reference = [3]
-            result = write_item_in_path(3, JSONPath('$[0]'), initial)
+            result = _write_item_in_array(3, JSONPath('$[0]'), initial)
             self.assertEqual(reference, result)
         with self.subTest('write item in array at relative root'):
             initial = []
             reference = [5]
-            result = write_item_in_path(5, JSONPath('@[0]'), initial)
+            result = _write_item_in_array(5, JSONPath('@[0]'), initial)
             self.assertEqual(reference, result)
         with self.subTest('write item in array in nested location'):
             initial = {'key1': 1,
@@ -144,15 +144,51 @@ class TestWriteItemJSONPath(unittest.TestCase):
                          'key2': {'key3': [1, 1, 8, 2, 3, 5],
                                   'key4': 5}
                          }
-            result = write_item_in_path(8, JSONPath('$.key2.key3[2]'), initial)
+            result = _write_item_in_array(8, JSONPath('$.key2.key3[2]'), initial)
             self.assertEqual(reference, result)
 
     def test_write_item_nested_arrays(self):
-        initial = {'key1': 43,
-                   'key2': [0, 1, [{'key3': True}, {'key4': False}]]}
-        reference = {'key1': 43,
-                     'key2': [0, 1, [{'key3': True}, {'key4': False, 'key5': 'New Value'}]]}
-        self.assertEqual(write_item_in_path('New Value', JSONPath('$.key2[-1][-1].key5'), initial), reference)
+        with self.subTest():
+            initial = {'key1': 43,
+                       'key2': [0, 1, [{'key3': True}, {'key4': False}]]}
+            reference = {'key1': 43,
+                         'key2': [0, 1, [{'key3': True}, {'key4': False, 'key5': 'New Value'}]]}
+            self.assertEqual(write_item_in_path('New Value', JSONPath('$.key2[-1][-1].key5'), initial), reference)
+        with self.subTest():
+            initial = {'key1': 43,
+                       'key2': [[0, 1, 2], [3, 4, 5], [6, 7, 8]]}
+            reference = {'key1': 43,
+                         'key2': [[0, 1, 2], [3, 4, 5], [6, 7, 8, 9]]}
+            self.assertEqual(_write_item_in_array(9, JSONPath('$.key2[2][3]'), initial), reference)
+        with self.subTest():
+            initial = {'key1': 43,
+                       'key2': [[0, 1, 2], [3, 4, 5], [6, 7, 8]]}
+            reference = {'key1': 43,
+                         'key2': [[0, 1, 2], [3, 4, 5], [6, 7, 8, 9]]}
+            self.assertEqual(_write_item_in_array(9, JSONPath('$.key2[-1][-1]'), initial), reference)
+
+    def test_write_deep_item_in_array(self):
+        with self.subTest('write new deep item in array'):
+            initial = {'key1': 1,
+                       'key2': {
+                           'key3': [
+                               {'subelement': 42,
+                                'other': True,
+                                'yet_another': [1, 2]}
+                           ],
+                           'key4': 5}
+                       }
+            reference = {'key1': 1,
+                         'key2': {
+                             'key3': [
+                                 {'subelement': 42,
+                                  'other': True,
+                                  'yet_another': [1, 2]},
+                                 {'subelement': 43}
+                             ],
+                             'key4': 5}
+                         }
+            self.assertEqual(write_item_in_path(43, JSONPath('$.key2.key3[1].subelement'), initial.copy()), reference)
 
 
 class TestJSONPath(unittest.TestCase):
