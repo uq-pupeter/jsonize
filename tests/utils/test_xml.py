@@ -97,6 +97,21 @@ class TestInferJsonPath(unittest.TestCase):
             reference = JSONPath('$.adrmsg:ADRMessage.adrmsg:hasMember.aixm:Route.attrib_gml:id')
             self.assertEqual(reference, xpath.to_json_path(attributes='attrib_', with_namespaces=True))
 
+    def test_sequence_path(self):
+        with self.subTest():
+            xpath = XPath("/adrmsg:ADRMessage/adrmsg:hasMember[1]/aixm:Route/@gml:id")
+            reference = JSONPath("$.adrmsg:ADRMessage.adrmsg:hasMember[0].aixm:Route._gml:id")
+            self.assertEqual(reference, xpath.to_json_path(attributes="_", with_namespaces=True))
+
+        with self.subTest():
+            xpath = XPath("/adrmsg:ADRMessage/adrmsg:hasMember[1]/aixm:Route/@gml:id")
+            reference = JSONPath("$.ADRMessage.hasMember[0].Route.id")
+            self.assertEqual(reference, xpath.to_json_path(attributes="", with_namespaces=False))
+
+        with self.subTest():
+            xpath = XPath("/adrmsg:ADRMessage/adrmsg:hasMember[-1]/aixm:Route/@gml:id")
+            reference = JSONPath("$.ADRMessage.hasMember[-1].Route.id")
+            self.assertRaises(ValueError)
 
 class TestXPathRelations(unittest.TestCase):
 
