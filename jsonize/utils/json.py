@@ -315,13 +315,12 @@ def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, Non
     """
     if json is None:
         if len(in_path.json_path_structure) == 1:
-            json_copy = []
-        elif len(in_path.json_path_structure) == 2 and isinstance(in_path.json_path_structure[1], int):
-            json_copy = []
+            return item
+        elif isinstance(in_path.json_path_structure[1], int):
+            json = []
         else:
-            json_copy = {}
-    else:
-        json_copy = deepcopy(json)
+            json = {}
+
     parent_path, item_relative_path = in_path.split(-1)
     item_key = item_relative_path.json_path_structure[-1]
 
