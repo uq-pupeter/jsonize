@@ -291,6 +291,15 @@ def _write_item_in_dict(item: Any, in_path: JSONPath, json: Union[Dict, List]) -
     parent.insert(in_path.json_path_structure[-1], item)
     return json
 
+def _write_item_in_path(item: Any, in_path: JSONPath) -> Union[Dict, List]:
+    for key in reversed(in_path.json_path_structure[1:]):
+        if isinstance(key, str):
+            item = {key: item}
+        elif isinstance(key, int):
+            item = [item]
+
+    return item
+
 
 def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, None]) -> Dict:
     """
