@@ -21,31 +21,31 @@ class TestGetItemJSONPath(unittest.TestCase):
 
     def test_item_exists(self):
         with self.subTest():
-            self.assertEqual(get_item_from_json_path(test_json_path, sample_dict_1),
+            self.assertEqual(get_item_from_json_path(test_json_path, deepcopy(sample_dict_1)),
                              42)
         with self.subTest():
-            self.assertEqual(get_item_from_json_path(JSONPath('$.key1.key2.key4'), sample_dict_1),
+            self.assertEqual(get_item_from_json_path(JSONPath('$.key1.key2.key4'), deepcopy(sample_dict_1)),
                              {'key5': True, 'key6': False})
 
     def test_get_root(self):
         with self.subTest():
-            self.assertEqual(get_item_from_json_path(JSONPath('$'), sample_dict_1), sample_dict_1)
+            self.assertEqual(get_item_from_json_path(JSONPath('$'), sample_dict_1), deepcopy(sample_dict_1))
         with self.subTest():
-            self.assertEqual(get_item_from_json_path(JSONPath('$'), sample_dict_2), sample_dict_2)
+            self.assertEqual(get_item_from_json_path(JSONPath('$'), sample_dict_2), deepcopy(sample_dict_2))
         with self.subTest():
-            self.assertEqual(get_item_from_json_path(JSONPath('$'), sample_dict_3), sample_dict_3)
+            self.assertEqual(get_item_from_json_path(JSONPath('$'), sample_dict_3), deepcopy(sample_dict_3))
         with self.subTest():
-            self.assertEqual(get_item_from_json_path(JSONPath('@'), sample_dict_2), sample_dict_2)
+            self.assertEqual(get_item_from_json_path(JSONPath('@'), sample_dict_2), deepcopy(sample_dict_2))
 
     def test_item_doesnt_exist(self):
         with self.assertRaises(KeyError):
-            get_item_from_json_path(JSONPath('$.key1.key2.another_key'), sample_dict_1)
+            get_item_from_json_path(JSONPath('$.key1.key2.another_key'), deepcopy(sample_dict_1))
         with self.assertRaises(KeyError):
-            get_item_from_json_path(test_json_path_2, sample_dict_1)
+            get_item_from_json_path(test_json_path_2, deepcopy(sample_dict_1))
 
     def test_item_not_suscriptable(self):
         with self.assertRaises(TypeError):
-            get_item_from_json_path(test_json_path, sample_dict_2)
+            get_item_from_json_path(test_json_path, deepcopy(sample_dict_2))
 
     def test_get_item_in_array(self):
         input_array = [0, 1, 2, 3, 4, 5, 6]
@@ -71,30 +71,30 @@ class TestWriteItemJSONPath(unittest.TestCase):
                                                         'key4': {'key5': True,
                                                                  'key6': False}}}})
         with self.subTest():
-            result_2 = write_item_in_path(9, JSONPath('$.key1'), sample_dict_2)
+            result_2 = write_item_in_path(9, JSONPath('$.key1'), deepcopy(sample_dict_2))
             self.assertEqual(result_2, {'key1': 9})
 
     def test_write_new_item(self):
         with self.subTest():
-            result = write_item_in_path('New value', JSONPath('$.new_key'), sample_dict_1)
+            result = write_item_in_path('New value', JSONPath('$.new_key'), deepcopy(sample_dict_1))
             reference = sample_dict_1
             reference['new_key'] = 'New value'
             self.assertEqual(reference, result)
 
         with self.subTest():
-            result_2 = write_item_in_path({'new_subkey': True}, JSONPath('$.key2.new_key'), sample_dict_3)
+            result_2 = write_item_in_path({'new_subkey': True}, JSONPath('$.key2.new_key'), deepcopy(sample_dict_3))
             reference_2 = sample_dict_3
             reference_2['key2']['new_key'] = {'new_subkey': True}
             self.assertEqual(result_2, reference_2)
 
     def test_write_new_item_in_new_path(self):
-        result = write_item_in_path('New value', JSONPath('$.key2.key3'), sample_dict_2)
+        result = write_item_in_path('New value', JSONPath('$.key2.key3'), deepcopy(sample_dict_2))
         reference = {'key1': 42,
                      'key2': {'key3': 'New value'}}
         self.assertEqual(reference, result)
 
     def test_write_deeply_nested_item_in_new_path(self):
-        result = write_item_in_path('New Value', JSONPath('$.key1.key2.key3.key4.key5.key6'), sample_dict_3)
+        result = write_item_in_path('New Value', JSONPath('$.key1.key2.key3.key4.key5.key6'), deepcopy(sample_dict_3))
         reference = {'key2':
                          {'key1':
                               {'key3': True}
@@ -188,7 +188,7 @@ class TestWriteItemJSONPath(unittest.TestCase):
                              ],
                              'key4': 5}
                          }
-            self.assertEqual(write_item_in_path(43, JSONPath('$.key2.key3[1].subelement'), initial.copy()), reference)
+            self.assertEqual(write_item_in_path(43, JSONPath('$.key2.key3[1].subelement'), initial), reference)
 
 
 class TestJSONPath(unittest.TestCase):
