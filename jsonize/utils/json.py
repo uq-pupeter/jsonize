@@ -267,8 +267,10 @@ def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
 
 
 def _write_item_in_array(item: Any, in_path: JSONPath, json: Union[Dict, List]) -> Union[Dict, List]:
+    if isinstance(in_path.json_path_structure[-1], slice):
+        raise ValueError('Writing on list slice is not supported.', in_path)
     if not isinstance(in_path.json_path_structure[-1], int):
-        raise ValueError(f"Cannot write item into array, {in_path} doesn't point to an array entry.")
+        raise ValueError(f"Cannot write item into array, {in_path} doesn't point to an array entry.", in_path)
     array_path, relative_path = in_path.split(-1)
     array = get_item_from_json_path(array_path, json)
     if array is None:
