@@ -129,9 +129,9 @@ class XMLNodeToJSONNode:
                 input_value = None
 
         elif self.from_xml_node.node_type == XMLNodeType.SEQUENCE:
-            if not self.item_mappings:
-                raise ValueError(
-                    "An item_mapping must be provided for an XML node of type 'sequence'.")
+            # if not self.item_mappings:
+            #     raise ValueError(
+            #         "An item_mapping must be provided for an XML node of type 'sequence'.")
             input_value = xml_etree.findall(str(self.from_xml_node.path), xml_namespaces)
         else:
             raise NotImplementedError(
