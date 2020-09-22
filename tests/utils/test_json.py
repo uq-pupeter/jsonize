@@ -112,9 +112,13 @@ class TestWriteItemJSONPath(unittest.TestCase):
                      }
         self.assertEqual(reference, result)
 
-    def test_fail_write_item_conflicting_path(self):
-        with self.assertRaises(TypeError):
-            write_item_in_path('Failed write', JSONPath('$.key1.key2.key4.key5.bad_key'), sample_dict_1)
+    def test_overwrite_item_conflicting_path(self):
+        reference = {'key1': {'key2': {'key3': 42,
+                               'other_key': -35,
+                               'key4': {'key5': {'bad_key': 'Overwrite'},
+                                        'key6': False}}}}
+        result = write_item_in_path('Overwrite', JSONPath('$.key1.key2.key4.key5.bad_key'), deepcopy(sample_dict_1))
+        self.assertEqual(reference, result)
 
     def test_write_item_in_array(self):
         with self.subTest('write dictionary in array'):
