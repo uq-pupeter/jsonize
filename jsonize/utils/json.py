@@ -38,10 +38,14 @@ from __future__ import annotations
 from enum import Enum
 from copy import deepcopy
 from typing import Dict, Any, Union, List
+import logging
 
 from pyparsing import nums, Word, Optional, Literal, Group, ParseResults
 
 __author__ = "EUROCONTROL (SWIM)"
+
+
+logger = logging.getLogger(__name__)
 
 
 class JSONPath():
