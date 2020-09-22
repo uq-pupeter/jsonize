@@ -329,7 +329,28 @@ def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, Non
     # If the parent item doesnt exist we iteratively create a path of empty items until we get to
     # the parent
     try:
-        parent_item = get_item_from_json_path(parent_path, json_copy)
+        parent_item = get_item_from_json_path(parent_path, json)
+        if isinstance(parent_item, dict):
+            if isinstance(item_key, str):
+                if item_key in parent_item.keys():
+                    logger.debug(f"Item at {in_path} already exists. Overwriting it.")
+                parent_item.update({item_key: item})
+            else:
+                raise ValueError('Cannot write in a dictionary using integer key.')
+
+        elif isinstance(parent_item, list):
+            if isinstance(item_key, slice):
+                raise ValueError('Writing on a list slice is not supported.')
+            elif isinstance(item_key, str):
+                parent_item.append({item_key: item})
+            elif isinstance(item_key, int):
+                if item_key >= 0:
+                    parent_item.insert(item_key, item)
+                else:
+                    parent_item.insert(len(parent_item) + 2, item)
+        else:
+            raise TypeError('Cannot write item in path: ', parent_path)
+        return json
     except (KeyError, TypeError, IndexError) as e:
         error_at_path: JSONPath = e.args[1]
         logger.debug(f"Path at {error_at_path} doesn't exist.")
