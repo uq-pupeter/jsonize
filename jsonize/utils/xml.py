@@ -458,6 +458,8 @@ class XPath():
 
         self.raw_xpath = xpath
 
+        return self
+
     def remove_indices(self, in_place: bool = True) -> Union[None, XPath]:
         """
         Removes the XPath indices that are present in elements part of an XML sequence. i.e.
