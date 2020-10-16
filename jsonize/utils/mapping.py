@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from json import load, dump, dumps
-from typing import Dict, List, Optional, Callable, Iterable, Union
+from typing import Dict, List, Optional, Callable, Iterable, Union, Iterator
 import re
 
 from lxml.etree import parse as xml_parse
@@ -478,15 +478,18 @@ def xml_document_to_dict(xml_document: Path,
 def iter_map_xml_document_to_dict(xml_document: Path,
                                   xml_namespaces: Dict = None,
                                   json: Optional[Dict] = None,
-                                  ignore_empty: bool = True) -> Dict:
+                                  ignore_empty: bool = True) -> Iterator[Union[Dict, List]]:
     """
     Generator that iteratively maps each node encountered in the input xml_document.
     It will infer the output type for each node.
-    :param xml_document:
-    :param xml_namespaces:
-    :param json:
-    :param ignore_empty: If True, empty nodes
-    :return:
+    :param xml_document: A Path to the XML document that is to be converted.
+    :param xml_namespaces: A dictionary defining the XML namespaces with namespace shortname as keys
+                           and the full namespace name as values. Follows the xml standard library
+                           convention for XML namespaces.
+    :param json: An input dictionary into which the XML document is to be mapped.
+                 Defaults to an empty dictionary if none given.
+    :param ignore_empty: If True, empty nodes are ignored
+    :return: Yields a json serializable dictionary or list
     """
     json = json or {}
     xml_etree = xml_parse(str(xml_document))  # type: ElementTree
