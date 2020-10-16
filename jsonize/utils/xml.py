@@ -572,12 +572,13 @@ def generate_node_xpaths(root: ElementTree,
             yield XPath(attrib).shorten_namespaces(xml_namespaces, in_place=False)
 
 
-def generate_nodes(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> Iterable[XMLNode]:
+def generate_nodes(tree: ElementTree, xml_namespaces: Dict[str, str] = None, clean_sequence_index: bool = False) -> Iterable[XMLNode]:
     """
     Generator that yields all possible XMLNode of an XML document.
 
     :param tree: The ElementTree of the XML document, containing its root Element.
     :param xml_namespaces: A dictionary containing the mapping of the namespaces.
+    :param clean_sequence_index: A boolean indicating if indices in an XPath indicating elements of a sequence should be preserved.
     :return: A generator that yields all the possible XMLNode.
     """
     root = tree.getroot()
@@ -585,9 +586,10 @@ def generate_nodes(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> 
 
     for xpath in generate_node_xpaths(tree, xml_namespaces):
         relative_xpath = xpath.relative_to(root_xpath, in_place=False)
-        cleaned_xpath = relative_xpath.remove_indices(in_place=False)
+        if clean_sequence_index:
+            relative_xpath = relative_xpath.remove_indices(in_place=False)
 
-        yield XMLNode(xpath=cleaned_xpath, node_type=xpath._infer_node_type())
+        yield XMLNode(xpath=relative_xpath, node_type=xpath._infer_node_type())
 
 
 def build_sequence_tree(
@@ -627,11 +629,11 @@ def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) ->
     :return: The XMLNodeTree of the input ElementTree.
     """
     root_xpath = XPath(tree.getpath(tree.getroot()))
-    all_nodes = set(generate_nodes(tree, xml_namespaces))
+    all_nodes = set(generate_nodes(tree, xml_namespaces, clean_sequence_index=True))
     sequence_node_xpaths = set()
 
     for node_xpath in generate_node_xpaths(tree, xml_namespaces):
-        if node_xpath._infer_node_type() == XMLNodeType.SEQUENCE:
+        if node_xpath._infer_node_type(infer_sequence=True) == XMLNodeType.SEQUENCE:
             node_xpath.remove_indices(in_place=True)
             node_xpath.relative_to(root_xpath, in_place=True)
             sequence_node_xpaths.add(node_xpath)
