@@ -36,7 +36,6 @@ Details on EUROCONTROL: http://www.eurocontrol.int
 from __future__ import annotations
 
 from enum import Enum
-from copy import deepcopy
 from typing import Dict, Any, Union, List
 import logging
 
@@ -286,11 +285,15 @@ def _write_item_in_array(item: Any, in_path: JSONPath, json: Union[Dict, List]) 
 
 
 def _write_item_in_dict(item: Any, in_path: JSONPath, json: Union[Dict, List]) -> Union[Dict, List]:
-    if not isinstance(in_path.json_path_structure[-1], str):
+    item_key = in_path.json_path_structure[-1]
+    if not isinstance(item_key, str):
         raise ValueError(f"Cannot write item into dictionary, {in_path} doesn't point to a dictionary key.")
     parent_path, relative_path = in_path.split(-1)
+
     parent = get_item_from_json_path(parent_path, json)
-    parent.insert(in_path.json_path_structure[-1], item)
+    if item_key in parent.keys():
+        logger.debug(f"Item at {in_path} already exists. Overwriting it.")
+    parent.update({in_path.json_path_structure[-1]: item})
     return json
 
 def _write_item_in_path(item: Any, in_path: JSONPath) -> Union[Dict, List]:
@@ -326,32 +329,19 @@ def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, Non
     parent_path, item_relative_path = in_path.split(-1)
     item_key = item_relative_path.json_path_structure[-1]
 
-    # If the parent item doesnt exist we iteratively create a path of empty items until we get to
-    # the parent
     try:
         parent_item = get_item_from_json_path(parent_path, json)
         if isinstance(parent_item, dict):
-            if isinstance(item_key, str):
-                if item_key in parent_item.keys():
-                    logger.debug(f"Item at {in_path} already exists. Overwriting it.")
-                parent_item.update({item_key: item})
-            else:
-                raise ValueError('Cannot write in a dictionary using integer key.')
+            _write_item_in_dict(item, in_path, json)
 
         elif isinstance(parent_item, list):
-            if isinstance(item_key, slice):
-                raise ValueError('Writing on a list slice is not supported.')
-            elif isinstance(item_key, str):
-                parent_item.append({item_key: item})
-            elif isinstance(item_key, int):
-                if item_key >= 0:
-                    parent_item.insert(item_key, item)
-                else:
-                    parent_item.insert(len(parent_item) + 2, item)
+            _write_item_in_array(item, in_path, json)
         else:
             raise TypeError('Cannot write item in path: ', parent_path)
         return json
     except (KeyError, TypeError, IndexError) as e:
+        # If the parent item doesnt exist we iteratively create a path of empty items until we get to
+        # the parent
         error_at_path: JSONPath = e.args[1]
         logger.debug(f"Path at {error_at_path} doesn't exist.")
         missing_path = in_path.split(at=len(error_at_path.json_path_structure))[1]
