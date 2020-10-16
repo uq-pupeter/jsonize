@@ -477,7 +477,7 @@ class XPath():
 
         self.raw_xpath = xpath
 
-    def _infer_node_type(self) -> XMLNodeType:
+    def _infer_node_type(self, infer_sequence: bool = False) -> XMLNodeType:
         """
         Attempts to infer the type of XML node from the XPath.
 
@@ -492,16 +492,15 @@ class XPath():
         Because of these assumptions this method should be used with care, knowing what you are
         doing or under the supervision of an adult. It's made private, as to not be exposed in the
         public interface of the class. If needed, use judiciously.
-
+        :param infer_sequence: Boolean indicating if elements part of a sequence will be inferred as SEQUENCE.
         :return: XMLNodeType that is inferred from the XPath.
         """
         if '@' in self._xpath_structure[-1]:
             node_type = XMLNodeType.ATTRIBUTE
-        elif re.search(r'\[[0-9]+\]', self._xpath_structure[-1]):
+        elif re.search(r'\[[0-9]+\]', self._xpath_structure[-1]) and infer_sequence:
             node_type = XMLNodeType.SEQUENCE
         else:
             node_type = XMLNodeType.VALUE
-
         return node_type
 
     def __str__(self) -> str:
