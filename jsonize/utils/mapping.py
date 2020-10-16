@@ -37,13 +37,18 @@ from __future__ import annotations
 from pathlib import Path
 from json import load, dump, dumps
 from typing import Dict, List, Optional, Callable, Iterable, Union
+import re
 
-from lxml.etree import parse as xml_parse, ElementTree
+from lxml.etree import parse as xml_parse
+from lxml.etree import ElementTree
 
-from jsonize.utils.xml import XMLNode, XMLNodeType, build_node_tree
+from jsonize.utils.xml import XMLNode, XMLNodeType, build_node_tree, generate_nodes, XPath
 from jsonize.utils.json import JSONNode, JSONNodeType, JSONPath, write_item_in_path
+import logging
 
 __author__ = "EUROCONTROL (SWIM)"
+
+logger = logging.getLogger(__name__)
 
 
 class Transformation:
@@ -51,6 +56,7 @@ class Transformation:
     Class containing a named definition of a transformation that is applied onto the value of an XML
     Node before mapping it into a JSON Node.
     """
+
     def __init__(self, name: str, transformation: Callable):
         self.name = name
         self.transformation = transformation
@@ -87,6 +93,162 @@ class XMLNodeToJSONNode:
         self.to_json_node = to_json_node
         self.transform = transform
         self.item_mappings = item_mappings or []
+
+    def _get_attribute(self, xml_etree: ElementTree,
+                       xml_namespaces: Dict = None) -> Optional[str]:
+        attribute_path = self.from_xml_node.path
+        parent_element_path = attribute_path.parent()
+        attribute_name = attribute_path.attribute_name()
+
+        if ':' in attribute_name:
+            ns_separator_loc = attribute_name.find(':')
+            short_ns = attribute_name[:ns_separator_loc]
+            expanded_ns = xml_namespaces[short_ns]
+            attribute_name = '{' + expanded_ns + '}' + attribute_name[ns_separator_loc + 1:]
+
+        parent_element = xml_etree.find(str(parent_element_path), xml_namespaces)
+
+        try:
+            input_value = parent_element.attrib[attribute_name]
+        except (KeyError, AttributeError):
+            input_value = None
+        return input_value
+
+    def _get_element_value(self, xml_etree: ElementTree,
+                           xml_namespaces: Dict = None,
+                           strip_whitespace: bool = True) -> Optional[str]:
+        xml_element = xml_etree.find(str(self.from_xml_node.path), xml_namespaces)
+        try:
+            input_value = xml_element.text
+            if strip_whitespace:
+                input_value = input_value.strip()
+        except AttributeError:
+            input_value = None
+        return input_value
+
+    def _map_input(self, input: Optional[str], json: Union[Dict, List, None], ignore_empty: bool = True) -> Union[Dict, List]:
+        logger.debug("Mapping {} into {}".format(self.from_xml_node.path, self.to_json_node.path))
+        if ignore_empty:
+            logger.debug("ignore_empty=True")
+            if isinstance(input, str):
+                input = re.sub(r"^\s*$", "", input)
+            if input is None or input == '':
+                logger.debug("input is empty. Ignoring...")
+                return json
+
+        if self.to_json_node.node_type == JSONNodeType.STRING:
+            logger.debug("Mapping input to string")
+            return write_item_in_path(input, JSONPath(self.to_json_node.path), json)
+
+        if self.to_json_node.node_type == JSONNodeType.INTEGER:
+            logger.debug("Mapping input to integer")
+            try:
+                casted_value = int(input)
+                return write_item_in_path(casted_value, JSONPath(self.to_json_node.path), json)
+            except ValueError as e:
+                raise ValueError(
+                    f'The node at {self.from_xml_node.path} is not castable into int', e.args[0])
+
+        if self.to_json_node.node_type == JSONNodeType.NUMBER:
+            logger.debug("Mapping input to number")
+            try:
+                casted_value = float(input)
+                return write_item_in_path(casted_value, JSONPath(self.to_json_node.path), json)
+            except ValueError as e:
+                raise ValueError(
+                    f'The node at {self.from_xml_node.path} is not castable into float', e.args[0])
+
+        if self.to_json_node.node_type == JSONNodeType.BOOLEAN:
+            logger.debug("Mapping input to boolean")
+            if input == 'true':
+                casted_value = True
+            elif input == 'false':
+                casted_value = False
+            else:
+                raise ValueError(f'The node at {self.from_xml_node.path} with value {input} '
+                                 f'is not castable into a boolean. '
+                                 f'Only "true" and "false" are valid XML boolean values.')
+
+            return write_item_in_path(casted_value, JSONPath(self.to_json_node.path), json)
+
+        if self.to_json_node.node_type == JSONNodeType.NULL:
+            logger.debug("Mapping input to null")
+            return write_item_in_path(None, JSONPath(self.to_json_node.path), json)
+
+        if self.to_json_node.node_type == JSONNodeType.INFER:
+            logger.debug("Infering output type")
+            if input in ['true', 'false']:
+                logger.debug("Infering boolean")
+                if input == 'true':
+                    casted_value = True
+                else:
+                    casted_value = False
+                return write_item_in_path(casted_value, JSONPath(self.to_json_node.path), json)
+
+            try:
+                casted_value = float(input)
+                if casted_value.is_integer():
+                    logger.debug("Infering integer")
+                    casted_value = int(casted_value)
+                else:
+                    logger.debug("Infering float")
+                return write_item_in_path(casted_value, JSONPath(self.to_json_node.path), json)
+
+            except ValueError:
+                logger.debug("Infering string")
+                return write_item_in_path(input, JSONPath(self.to_json_node.path), json)
+            except TypeError:
+                if input is None:
+                    logger.debug("Infering null")
+                    return write_item_in_path(None, JSONPath(self.to_json_node.path), json)
+                else:
+                    raise ValueError(
+                        f'Unable to infer JSON type for the value at {self.from_xml_node.path}')
+
+
+    def _map(self, xml_etree: ElementTree,
+             json: Union[Dict, List, None],
+             xml_namespaces: Dict = None,
+             ignore_empty: bool = True) -> Dict:
+        """
+        Maps the XMLNode from xml_etree into the given json serializable dictionary.
+        :param xml_etree: An XML ElementTree from which the input XMLNode is to be taken. If the
+                          XMLNode is not found in the xml_etree it will be defaulted to None.
+        :param json: The JSON serializable dictionary onto which the input is to be mapped.
+        :param xml_namespaces: A dictionary defining the XML namespaces used in the xml_etree, if
+                               they are used they must be provided to find the XMLNode via its XPath
+                               expression.
+        :return: The JSON serializable dictionary with the input XMLNode mapped.
+        """
+        if self.from_xml_node.node_type == XMLNodeType.ATTRIBUTE:
+            input = self._get_attribute(xml_etree, xml_namespaces)
+        elif self.from_xml_node.node_type == XMLNodeType.VALUE:
+            input = self._get_element_value(xml_etree, xml_namespaces)
+        elif self.from_xml_node.node_type == XMLNodeType.SEQUENCE:
+            if not self.item_mappings:
+                raise ValueError(
+                   "An item_mapping must be provided for an XML node of type 'sequence'.")
+            input_sequence = xml_etree.findall(str(self.from_xml_node.path), xml_namespaces)
+
+            if self.to_json_node.node_type == JSONNodeType.ARRAY:
+                items = []
+                for element in input_sequence:
+                    item = None
+                    for mapping in self.item_mappings:
+                        item = mapping._map(element, item, xml_namespaces)
+                    items.append(item)
+                return write_item_in_path(items, JSONPath(self.to_json_node.path), json)
+            else:
+                raise ValueError("Cannot map an XML sequence into {}".format(self.to_json_node.node_type))
+        elif self.from_xml_node.node_type == XMLNodeType.ELEMENT:
+            xml_element = xml_etree.find(str(self.from_xml_node.path), xml_namespaces)
+            item = {}
+            for mapping in self.item_mappings:
+                item = mapping._map(xml_element, item, xml_namespaces)
+            return write_item_in_path(item, JSONPath(self.to_json_node.path), json)
+        else:
+            raise ValueError(f"Not supported node type {self.from_xml_node.node_type.name}")
+        return self._map_input(input, json, ignore_empty)
 
     def map(self,
             xml_etree: ElementTree,
@@ -131,7 +293,7 @@ class XMLNodeToJSONNode:
         elif self.from_xml_node.node_type == XMLNodeType.SEQUENCE:
             if not self.item_mappings:
                 raise ValueError(
-                    "An item_mapping must be provided for an XML node of type 'sequence'.")
+                   "An item_mapping must be provided for an XML node of type 'sequence'.")
             input_value = xml_etree.findall(str(self.from_xml_node.path), xml_namespaces)
         else:
             raise NotImplementedError(
@@ -255,7 +417,7 @@ def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> XML
     return parsed_node_map
 
 
-def parse(jsonize_map: List[Dict], transformations: Optional[List[Transformation]]=None) -> List[XMLNodeToJSONNode]:
+def parse(jsonize_map: List[Dict], transformations: Optional[List[Transformation]] = None) -> List[XMLNodeToJSONNode]:
     """
     Produces a list of XMLNodeToJSONNode mappings from the Python serialization of a Jsonize map.
     A Jsonize map is defined as an instance of jsonize-map.schema.json.
@@ -302,7 +464,7 @@ def xml_document_to_dict(xml_document: Path,
                              '"jsonize_map_document" or "jsonize_map".')
 
         with jsonize_map_document.open('r') as jsonize_map_file:
-            jsonize_map = parse(load(jsonize_map_file), transformations )
+            jsonize_map = parse(load(jsonize_map_file), transformations)
 
     result = json
     xml_etree = xml_parse(str(xml_document))
@@ -311,6 +473,44 @@ def xml_document_to_dict(xml_document: Path,
         result = mapping.map(xml_etree, result, xml_namespaces=xml_namespaces)
 
     return result
+
+
+def iter_map_xml_document_to_dict(xml_document: Path,
+                                  xml_namespaces: Dict = None,
+                                  json: Optional[Dict] = None,
+                                  ignore_empty: bool = True) -> Dict:
+    """
+    Generator that iteratively maps each node encountered in the input xml_document.
+    It will infer the output type for each node.
+    :param xml_document:
+    :param xml_namespaces:
+    :param json:
+    :param ignore_empty: If True, empty nodes
+    :return:
+    """
+    json = json or {}
+    xml_etree = xml_parse(str(xml_document))  # type: ElementTree
+    root = xml_etree.getroot()
+    root_xpath = XPath(xml_etree.getpath(root))
+    all_elements = xml_etree.iterfind('//*')  # type: Iterable[ElementTree]
+
+    for element in all_elements:
+        ns_map = element.nsmap
+        element_path = xml_etree.getpath(element)
+        element_xpath = XPath(element_path)
+        element_xpath.shorten_namespaces(ns_map, in_place=True).relative_to(root_xpath, in_place=True)
+        attrib_paths = (XPath(f'{element_path}/@{attrib_name}') for attrib_name, _ in element.attrib.items())
+
+        for attrib in attrib_paths:
+            attrib.shorten_namespaces(ns_map, in_place=True)
+            attrib.relative_to(root_xpath, in_place=True)
+            yield attrib
+
+    for node in generate_nodes(xml_etree, xml_namespaces):
+        jsonize_mapping = node.to_jsonize(attributes='_')
+        node_map = parse_node_map(jsonize_mapping, transformations=[])
+        node_map._map(xml_etree, json, xml_namespaces=xml_namespaces, ignore_empty=ignore_empty)
+        yield json
 
 
 def xml_document_to_json_document(xml_document: Path,
