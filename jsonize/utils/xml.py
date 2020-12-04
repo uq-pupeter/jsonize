@@ -622,6 +622,14 @@ def build_sequence_tree(
     return build_sequence_tree(trimmed_sequence_nodes, trimmed_leaf_nodes + deepest_sequences)
 
 
+def xml_node_from_xpath(xpath: XPath, root_xpath: XPath, clean_sequence_index: bool = False) -> XMLNode:
+    relative_xpath = xpath.relative_to(root_xpath, in_place=False)
+    if clean_sequence_index:
+        relative_xpath = relative_xpath.remove_indices(in_place=False)
+
+    return XMLNode(xpath=relative_xpath, node_type=xpath._infer_node_type())
+
+
 def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> XMLNodeTree:
     """
     Builds an XMLNodeTree from the XML ElementTree
@@ -631,14 +639,17 @@ def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) ->
     :return: The XMLNodeTree of the input ElementTree.
     """
     root_xpath = XPath(tree.getpath(tree.getroot()))
-    all_nodes = set(generate_nodes(tree, xml_namespaces, clean_sequence_index=True))
+    all_nodes = set()
     sequence_node_xpaths = set()
 
     for node_xpath in generate_node_xpaths(tree, xml_namespaces):
+        all_nodes.add(xml_node_from_xpath(node_xpath, root_xpath, clean_sequence_index=True))
+
         if node_xpath._infer_node_type(infer_sequence=True) == XMLNodeType.SEQUENCE:
             node_xpath.remove_indices(in_place=True)
             node_xpath.relative_to(root_xpath, in_place=True)
             sequence_node_xpaths.add(node_xpath)
+
 
     leaves = [
         node for node in all_nodes
