@@ -314,7 +314,8 @@ def xml_document_to_dict(xml_document: Path,
                          jsonize_map: Optional[Iterable[XMLNodeToJSONNode]] = None,
                          xml_namespaces: Dict = None,
                          json: Optional[Dict] = None,
-                         transformations: Optional[Iterable[Transformation]] = None) -> Dict:
+                         transformations: Optional[Iterable[Transformation]] = None,
+                         ignore_empty: bool = True) -> Dict:
     """
     Transforms an XML document into a JSON serializable dictionary.
 
@@ -329,6 +330,7 @@ def xml_document_to_dict(xml_document: Path,
                  Defaults to an empty dictionary if none given.
     :param transformations: An iterable of Transformation that contains the functions that are invoked
                             in the Jsonize mapping.
+    :param ignore_empty: A boolean indicating if missing XML Nodes should be ignored.
     :return: A (JSON serializable) Python dictionary containing the items defined in the mappings
             extracted from the xml_document.
     """
@@ -349,7 +351,7 @@ def xml_document_to_dict(xml_document: Path,
     xml_etree = xml_parse(str(xml_document))
 
     for mapping in jsonize_map:
-        result = mapping.map(xml_etree, result, xml_namespaces=xml_namespaces)
+        result = mapping.map(xml_etree, result, xml_namespaces=xml_namespaces, ignore_empty=ignore_empty)
 
     return result
 
@@ -367,7 +369,7 @@ def iter_map_xml_document_to_dict(xml_document: Path,
                            convention for XML namespaces.
     :param json: An input dictionary into which the XML document is to be mapped.
                  Defaults to an empty dictionary if none given.
-    :param ignore_empty: If True, empty nodes are ignored
+    :param ignore_empty: A boolean indicating if missing XML Nodes should be ignored.
     :return: Yields a json serializable dictionary or list
     """
     json = json or {}
@@ -401,7 +403,8 @@ def xml_document_to_json_document(xml_document: Path,
                                   jsonize_map: Optional[Iterable[XMLNodeToJSONNode]] = None,
                                   xml_namespaces: Dict = None,
                                   json: Optional[Dict] = None,
-                                  transformations: Optional[Iterable[Transformation]] = None) -> None:
+                                  transformations: Optional[Iterable[Transformation]] = None,
+                                  ignore_empty: bool = True) -> None:
     """
     Transforms an XML document into a JSON document and saves it in the json_document Path.
 
@@ -417,6 +420,7 @@ def xml_document_to_json_document(xml_document: Path,
                  Defaults to an empty dictionary if none given.
     :param transformations: An iterable of Transformation that contains the functions that are invoked
                             in the Jsonize mapping.
+    :param ignore_empty: A boolean indicating if missing XML Nodes should be ignored.
     :return: None, the function is pure side-effects.
     """
     result = xml_document_to_dict(xml_document=xml_document,
@@ -424,7 +428,8 @@ def xml_document_to_json_document(xml_document: Path,
                                   jsonize_map=jsonize_map,
                                   xml_namespaces=xml_namespaces,
                                   json=json,
-                                  transformations=transformations)
+                                  transformations=transformations,
+                                  ignore_empty=ignore_empty)
 
     with json_document.open('w') as result_file:
         result_file.write(dumps(result))
