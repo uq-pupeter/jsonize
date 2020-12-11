@@ -43,7 +43,7 @@ from lxml.etree import parse as xml_parse
 from lxml.etree import ElementTree
 
 from jsonize.utils.xml import XMLNode, XMLNodeType, build_node_tree, generate_nodes, XPath
-from jsonize.utils.json import JSONNode, JSONNodeType, JSONPath, write_item_in_path
+from jsonize.utils.json import JSONNode, JSONNodeType, JSONPath, write_item_in_path, infer_json_type
 import logging
 
 __author__ = "EUROCONTROL (SWIM)"
@@ -176,34 +176,41 @@ class XMLNodeToJSONNode:
             return write_item_in_path(None, JSONPath(self.to_json_node.path), json)
 
         if self.to_json_node.node_type == JSONNodeType.INFER:
-            logger.debug("Infering output type")
-            if input in ['true', 'false']:
-                logger.debug("Infering boolean")
+            try:
+                inferred_json_type = infer_json_type(input)
+            except ValueError:
+                raise ValueError('Unable to infer JSON type for the value at {}'.format(self.from_xml_node.path))
+
+            if inferred_json_type == JSONNodeType.BOOLEAN:
                 if input == 'true':
                     casted_value = True
-                else:
+                elif input == 'false':
                     casted_value = False
+                else:
+                    casted_value = bool(input)
                 return write_item_in_path(casted_value, JSONPath(self.to_json_node.path), json)
 
-            try:
+            elif inferred_json_type == JSONNodeType.NUMBER:
                 casted_value = float(input)
-                if casted_value.is_integer():
-                    logger.debug("Infering integer")
-                    casted_value = int(casted_value)
-                else:
-                    logger.debug("Infering float")
                 return write_item_in_path(casted_value, JSONPath(self.to_json_node.path), json)
 
-            except ValueError:
-                logger.debug("Infering string")
+            elif inferred_json_type == JSONNodeType.INTEGER:
+                casted_value = int(input)
+                return write_item_in_path(casted_value, JSONPath(self.to_json_node.path), json)
+
+            elif inferred_json_type == JSONNodeType.STRING:
                 return write_item_in_path(input, JSONPath(self.to_json_node.path), json)
-            except TypeError:
-                if input is None:
-                    logger.debug("Infering null")
-                    return write_item_in_path(None, JSONPath(self.to_json_node.path), json)
-                else:
-                    raise ValueError(
-                        f'Unable to infer JSON type for the value at {self.from_xml_node.path}')
+
+            elif inferred_json_type == JSONNodeType.NULL:
+                return write_item_in_path(None, JSONPath(self.to_json_node.path), json)
+
+            elif inferred_json_type == JSONNodeType.ARRAY:
+                return write_item_in_path(input, JSONPath(self.to_json_node.path), json)
+
+            elif inferred_json_type == JSONNodeType.OBJECT:
+                return write_item_in_path(input, JSONPath(self.to_json_node.path), json)
+            else:
+                raise ValueError("Input map for JSONNodeType of type {} not implemented".format(inferred_json_type))
 
     def map(self, xml_etree: ElementTree,
             json: Union[Dict, List, None],
@@ -440,7 +447,8 @@ def infer_jsonize_map(xml_document: Path,
                       xml_namespaces: Dict = None,
                       value_tag: str = 'value',
                       attribute_tag: str = '',
-                      with_namespaces: bool = True) -> None:
+                      with_namespaces: bool = True,
+                      strict_type: bool = False) -> None:
     """
     This function will infer a Jsonize map for a given input xml_document. It does so by applying
     certain conventions of how to map XML nodes into JSON:

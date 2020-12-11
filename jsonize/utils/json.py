@@ -349,3 +349,41 @@ def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, Non
 
         missing_item = _write_item_in_path(item, missing_path)
         return write_item_in_path(missing_item, error_at_path, json)
+
+
+def infer_json_type(input: Union[Dict, List, str, float, int, None, bool]) -> JSONNodeType:
+    """
+    Infers the most apt JSONNodeType of some input value.
+    :param input: An input value for which we want to infer the JSONNodeType.
+    :return: An enum value of JSONNodeType with the best fitting type.
+    """
+    if input is None:
+        return JSONNodeType.NULL
+    elif isinstance(input, Dict):
+        return JSONNodeType.OBJECT
+    elif isinstance(input, List):
+        return JSONNodeType.ARRAY
+    elif isinstance(input, str):
+        if input in ['true', 'false']:
+            return JSONNodeType.BOOLEAN
+
+        try:
+            casted_value = float(input)
+            if casted_value.is_integer():
+                return JSONNodeType.INTEGER
+            else:
+                return JSONNodeType.NUMBER
+
+        except ValueError:
+            return JSONNodeType.STRING
+        except Exception:
+            raise ValueError('Unable to infer JSON type for {}'.format(input))
+    elif isinstance(input, float):
+        if input.is_integer():
+            return JSONNodeType.INTEGER
+        else:
+            return JSONNodeType.NUMBER
+    elif isinstance(input, bool):
+        return JSONNodeType.BOOLEAN
+    else:
+        raise ValueError('Unable to infer JSON type for {}'.format(input))
