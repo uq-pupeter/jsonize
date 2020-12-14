@@ -351,39 +351,80 @@ def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, Non
         return write_item_in_path(missing_item, error_at_path, json)
 
 
-def infer_json_type(input: Union[Dict, List, str, float, int, None, bool]) -> JSONNodeType:
+def str_is_int(value: str) -> bool:
+    """
+
+    :param value:
+    :return:
+    """
+    if not value or isinstance(value, bool):
+        return False
+
+    if value[0] in ['-', '+']:
+        value = value[1:]
+
+    return value.isdigit()
+
+
+def str_is_float(value: str) -> bool:
+    """
+
+    :param value:
+    :return:
+    """
+    if not value \
+            or isinstance(value, bool) \
+            or value.lower() in ['nan', 'infinity', 'inf']:
+        return False
+
+    try:
+        float(value)
+    except ValueError:
+        return False
+
+    return True
+
+
+def str_is_bool(value: str) -> bool:
+    """
+
+    :param value:
+    :return:
+    """
+    return value.lower() in ['true', 'false']
+
+
+def infer_json_type(value: Union[Dict, List, str, float, int, None, bool]) -> JSONNodeType:
     """
     Infers the most apt JSONNodeType of some input value.
-    :param input: An input value for which we want to infer the JSONNodeType.
+    :param value: An value value for which we want to infer the JSONNodeType.
     :return: An enum value of JSONNodeType with the best fitting type.
     """
-    if input is None:
+    if value is None:
         return JSONNodeType.NULL
-    elif isinstance(input, Dict):
+
+    if isinstance(value, Dict):
         return JSONNodeType.OBJECT
-    elif isinstance(input, List):
+
+    if isinstance(value, List):
         return JSONNodeType.ARRAY
-    elif isinstance(input, str):
-        if input in ['true', 'false']:
+
+    if isinstance(value, str):
+        if str_is_bool(value):
             return JSONNodeType.BOOLEAN
 
-        try:
-            casted_value = float(input)
-            if casted_value.is_integer():
-                return JSONNodeType.INTEGER
-            else:
-                return JSONNodeType.NUMBER
-
-        except ValueError:
-            return JSONNodeType.STRING
-        except Exception:
-            raise ValueError('Unable to infer JSON type for {}'.format(input))
-    elif isinstance(input, float):
-        if input.is_integer():
-            return JSONNodeType.INTEGER
-        else:
+        if str_is_float(value):
             return JSONNodeType.NUMBER
-    elif isinstance(input, bool):
+
+        if str_is_int(value):
+            return JSONNodeType.INTEGER
+
+        return JSONNodeType.STRING
+
+    if isinstance(value, float):
+        return JSONNodeType.INTEGER if value.is_integer() else JSONNodeType.NUMBER
+
+    if isinstance(value, bool):
         return JSONNodeType.BOOLEAN
-    else:
-        raise ValueError('Unable to infer JSON type for {}'.format(input))
+
+    raise ValueError('Unable to infer JSON type for {}'.format(value))
