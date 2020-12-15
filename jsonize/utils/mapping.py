@@ -443,12 +443,12 @@ def xml_document_to_json_document(xml_document: Path,
 
 
 def infer_jsonize_map(xml_document: Path,
-                      output_map: Path,
-                      xml_namespaces: Dict = None,
+                      output_map: Optional[Path] = None,
+                      xml_namespaces: Optional[Dict[str, str]] = None,
                       value_tag: str = 'value',
                       attribute_tag: str = '',
                       with_namespaces: bool = True,
-                      strict_type: bool = False) -> None:
+                      strict_type: bool = False) -> List[Dict[str, Dict[str, str]]]:
     """
     This function will infer a Jsonize map for a given input xml_document. It does so by applying
     certain conventions of how to map XML nodes into JSON:
@@ -494,7 +494,7 @@ def infer_jsonize_map(xml_document: Path,
                           empty string.
     :param with_namespaces: Specifies if XML namespaces should be kept in the JSON output,
     it defaults to True.
-    :return:
+    :return: the jsonize map
     """
     xml_etree = xml_parse(str(xml_document))
     node_tree = build_node_tree(xml_etree, xml_namespaces=xml_namespaces)
@@ -503,5 +503,8 @@ def infer_jsonize_map(xml_document: Path,
                                     attributes=attribute_tag,
                                     with_namespaces=with_namespaces)
 
-    with output_map.open('w') as output_file:
-        dump(jsonized, output_file)
+    if output_map:
+        with output_map.open('w') as output_file:
+            dump(jsonized, output_file)
+
+    return jsonized
