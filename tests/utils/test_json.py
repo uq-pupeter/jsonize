@@ -1,4 +1,5 @@
-from jsonize.utils.json import get_item_from_json_path, write_item_in_path, JSONPath, _write_item_in_array
+from jsonize.utils.json import *
+from jsonize.utils.json import _write_item_in_array, _write_item_in_dict, _write_item_in_path
 from copy import deepcopy
 import unittest
 
@@ -306,6 +307,48 @@ class TestJSONPath(unittest.TestCase):
             from_string = JSONPath('$.key1.key2[-1].key3[1:5:2].key4[1:3][-1]')
             from_path_structure = JSONPath.from_json_path_structure(['$', 'key1', 'key2', -1, 'key3', slice(1, 5, 2), 'key4', slice(1, 3), -1])
             self.assertEqual(from_string, from_path_structure)
+
+
+class TestStringCasting(unittest.TestCase):
+    value_1 = '3'
+    value_2 = '2.0'
+    value_3 = '-4'
+    value_4 = 'inf'
+    value_5 = '-inf'
+
+    def test_str_is_int(self):
+        with self.subTest():
+            self.assertTrue(str_is_int(self.value_1))
+
+        with self.subTest():
+            self.assertTrue(str_is_int(self.value_3))
+
+    def test_str_is_not_int(self):
+        with self.subTest():
+            self.assertFalse(str_is_int(self.value_2))
+
+        with self.subTest():
+            self.assertFalse(str_is_int(self.value_4))
+
+        with self.subTest():
+            self.assertFalse(str_is_int(self.value_5))
+
+    def test_str_is_float(self):
+        with self.subTest():
+            self.assertTrue(str_is_float(self.value_2))
+
+        with self.subTest():
+            self.assertTrue(str_is_float(self.value_4))
+
+        with self.subTest():
+            self.assertTrue(str_is_float(self.value_5))
+
+    def test_str_is_not_float(self):
+        with self.subTest():
+            self.assertFalse(str_is_int(self.value_1))
+
+        with self.subTest():
+            self.assertFalse(str_is_int(self.value_3))
 
 
 if __name__ == '__main__':
