@@ -372,9 +372,13 @@ def str_is_float(value: str) -> bool:
     :param value:
     :return:
     """
-    if not value \
-            or isinstance(value, bool) \
-            or value.lower() in ['nan', 'infinity', 'inf']:
+    if not value or isinstance(value, bool):
+        return False
+
+    if value[0] in ['-', '+']:
+        value = value[1:]
+
+    if value.lower() in ['nan', 'infinity', 'inf']:
         return False
 
     try:
