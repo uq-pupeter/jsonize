@@ -417,8 +417,15 @@ class XPath():
         json_path = re.sub(r'^\./', '@/', json_path)
         json_path = re.sub(r'^/', '$/', json_path)
         json_path = re.sub(r'/', '.', json_path)
-
-        return JSONPath(json_path)
+        json_path = JSONPath(json_path)
+        json_path_structure = []
+        for path_key in json_path.json_path_structure:
+            if isinstance(path_key, int):
+                if path_key <= 0:
+                    raise ValueError(f"An XPath expression cannot contain an index <= 0, xpath= {self}")
+                path_key += -1
+            json_path_structure.append(path_key)
+        return JSONPath.from_json_path_structure(json_path_structure)
 
     def relative_to(self, ancestor: XPath, in_place: bool = True) -> Union[None, XPath]:
         """
@@ -451,6 +458,8 @@ class XPath():
 
         self.raw_xpath = xpath
 
+        return self
+
     def remove_indices(self, in_place: bool = True) -> Union[None, XPath]:
         """
         Removes the XPath indices that are present in elements part of an XML sequence. i.e.
@@ -470,7 +479,7 @@ class XPath():
 
         self.raw_xpath = xpath
 
-    def _infer_node_type(self) -> XMLNodeType:
+    def _infer_node_type(self, infer_sequence: bool = False) -> XMLNodeType:
         """
         Attempts to infer the type of XML node from the XPath.
 
@@ -485,16 +494,15 @@ class XPath():
         Because of these assumptions this method should be used with care, knowing what you are
         doing or under the supervision of an adult. It's made private, as to not be exposed in the
         public interface of the class. If needed, use judiciously.
-
+        :param infer_sequence: Boolean indicating if elements part of a sequence will be inferred as SEQUENCE.
         :return: XMLNodeType that is inferred from the XPath.
         """
         if '@' in self._xpath_structure[-1]:
             node_type = XMLNodeType.ATTRIBUTE
-        elif re.search(r'\[[0-9]+\]', self._xpath_structure[-1]):
+        elif re.search(r'\[[0-9]+\]', self._xpath_structure[-1]) and infer_sequence:
             node_type = XMLNodeType.SEQUENCE
         else:
             node_type = XMLNodeType.VALUE
-
         return node_type
 
     def __str__(self) -> str:
@@ -566,12 +574,13 @@ def generate_node_xpaths(root: ElementTree,
             yield XPath(attrib).shorten_namespaces(xml_namespaces, in_place=False)
 
 
-def generate_nodes(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> Iterable[XMLNode]:
+def generate_nodes(tree: ElementTree, xml_namespaces: Dict[str, str] = None, clean_sequence_index: bool = False) -> Iterable[XMLNode]:
     """
     Generator that yields all possible XMLNode of an XML document.
 
     :param tree: The ElementTree of the XML document, containing its root Element.
     :param xml_namespaces: A dictionary containing the mapping of the namespaces.
+    :param clean_sequence_index: A boolean indicating if indices in an XPath indicating elements of a sequence should be preserved.
     :return: A generator that yields all the possible XMLNode.
     """
     root = tree.getroot()
@@ -579,9 +588,10 @@ def generate_nodes(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> 
 
     for xpath in generate_node_xpaths(tree, xml_namespaces):
         relative_xpath = xpath.relative_to(root_xpath, in_place=False)
-        cleaned_xpath = relative_xpath.remove_indices(in_place=False)
+        if clean_sequence_index:
+            relative_xpath = relative_xpath.remove_indices(in_place=False)
 
-        yield XMLNode(xpath=cleaned_xpath, node_type=xpath._infer_node_type())
+        yield XMLNode(xpath=relative_xpath, node_type=xpath._infer_node_type())
 
 
 def build_sequence_tree(
@@ -612,6 +622,14 @@ def build_sequence_tree(
     return build_sequence_tree(trimmed_sequence_nodes, trimmed_leaf_nodes + deepest_sequences)
 
 
+def xml_node_from_xpath(xpath: XPath, root_xpath: XPath, clean_sequence_index: bool = False) -> XMLNode:
+    relative_xpath = xpath.relative_to(root_xpath, in_place=False)
+    if clean_sequence_index:
+        relative_xpath = relative_xpath.remove_indices(in_place=False)
+
+    return XMLNode(xpath=relative_xpath, node_type=xpath._infer_node_type())
+
+
 def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) -> XMLNodeTree:
     """
     Builds an XMLNodeTree from the XML ElementTree
@@ -621,14 +639,17 @@ def build_node_tree(tree: ElementTree, xml_namespaces: Dict[str, str] = None) ->
     :return: The XMLNodeTree of the input ElementTree.
     """
     root_xpath = XPath(tree.getpath(tree.getroot()))
-    all_nodes = set(generate_nodes(tree, xml_namespaces))
+    all_nodes = set()
     sequence_node_xpaths = set()
 
     for node_xpath in generate_node_xpaths(tree, xml_namespaces):
-        if node_xpath._infer_node_type() == XMLNodeType.SEQUENCE:
+        all_nodes.add(xml_node_from_xpath(node_xpath, root_xpath, clean_sequence_index=True))
+
+        if node_xpath._infer_node_type(infer_sequence=True) == XMLNodeType.SEQUENCE:
             node_xpath.remove_indices(in_place=True)
             node_xpath.relative_to(root_xpath, in_place=True)
             sequence_node_xpaths.add(node_xpath)
+
 
     leaves = [
         node for node in all_nodes
