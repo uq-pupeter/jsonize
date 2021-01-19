@@ -337,18 +337,12 @@ class TestStringCasting(unittest.TestCase):
         with self.subTest():
             self.assertTrue(str_is_float(self.value_2))
 
-        with self.subTest():
-            self.assertTrue(str_is_float(self.value_4))
-
-        with self.subTest():
-            self.assertTrue(str_is_float(self.value_5))
-
     def test_str_is_not_float(self):
         with self.subTest():
-            self.assertFalse(str_is_int(self.value_1))
+            self.assertFalse(str_is_float(self.value_4))
 
         with self.subTest():
-            self.assertFalse(str_is_int(self.value_3))
+            self.assertFalse(str_is_float(self.value_5))
 
 
 if __name__ == '__main__':
