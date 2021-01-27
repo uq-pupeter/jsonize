@@ -36,14 +36,20 @@ from __future__ import annotations
 
 from pathlib import Path
 from json import load, dump, dumps
-from typing import Dict, List, Optional, Callable, Iterable, Union, Iterator
+from typing import Dict, List, Optional, Callable, Iterable, Union, Iterator, Any
+from abc import ABC, abstractmethod
 import re
 
 from lxml.etree import parse as xml_parse
 from lxml.etree import ElementTree
 
 from jsonize.utils.xml import XMLNode, XMLNodeType, build_node_tree, generate_nodes, XPath
-from jsonize.utils.json import JSONNode, JSONNodeType, JSONPath, write_item_in_path, infer_json_type
+from jsonize.utils.json import (JSONNode,
+                                JSONNodeType,
+                                JSONPath,
+                                write_item_in_path,
+                                infer_json_type,
+                                get_item_from_json_path)
 import logging
 
 __author__ = "EUROCONTROL (SWIM)"
@@ -65,7 +71,19 @@ class Transformation:
         return self.transformation(input)
 
 
-class XMLNodeToJSONNode:
+class NodeMap(ABC):
+    """
+    Abstract class defining a mapping between two nodes.
+    This abstract class is realized in XMLNodeToJSONNode class, mapping an XMLNode to a JSONNode and
+    JSONNodeToJSONNode which maps a JSONNode to a JSONNode.
+    """
+
+    @abstractmethod
+    def map(self, **kwargs):
+        pass
+
+
+class XMLNodeToJSONNode(NodeMap):
     """
     Class defining the mapping from an XMLNode to a JSONNode. A mapping is defined by providing the
     input XMLNode, the output JSONNode and an optional transform function that is to be applied to
@@ -263,7 +281,65 @@ class XMLNodeToJSONNode:
             return self._map_input(input, json, ignore_empty)
 
 
-def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> XMLNodeToJSONNode:
+class JSONNodeToJSONNode(NodeMap):
+    def __init__(self,
+                 from_json_node: JSONNode,
+                 to_json_node: JSONNode,
+                 transform: Optional[Callable] = None,
+                 item_mappings: Optional[Iterable[JSONNodeToJSONNode]] = None) -> None:
+        self.from_json_node = from_json_node
+        self.to_json_node = to_json_node
+        self.transform = transform
+        self.item_mappings = item_mappings or []
+
+    def _get_attribute(self, json: Union[Dict, List]) -> Optional[Any]:
+        try:
+            return get_item_from_json_path(JSONPath(self.from_json_node.path), json)
+        except (KeyError, TypeError, IndexError) as e:
+            logger.debug("Attribute at path {} doesn't exist".format(self.from_json_node.path))
+            return None
+
+    def map(self, input_json: Union[Dict, List],
+            output_json: Union[Dict, List, None],
+            ignore_empty: bool = True) -> Union[Dict, List]:
+        input = self._get_attribute(input_json)
+        if self.transform:
+            input = self.transform(input)
+
+        if not input:
+            if ignore_empty:
+                return output_json
+
+        return write_item_in_path(input, in_path=JSONPath(self.to_json_node.path), json=output_json)
+
+
+def _parse_from_json_node_map(node_map: Dict) -> JSONNode:
+    return JSONNode(node_map['from']['path'], JSONNodeType(node_map['from']['type']))
+
+
+def _parse_from_xml_node_map(node_map: Dict) -> XMLNode:
+    return XMLNode(node_map['from']['path'], XMLNodeType(node_map['from']['type']))
+
+
+def infer_path_type(path: str) -> Union[XPath, JSONPath]:
+    """
+    Infers the type of a path (XPath or JSONPath) based on its syntax.
+    It performs some basic sanity checks to differentiate a JSONPath from an XPath.
+    :param path: A valid XPath or JSONPath string.
+    :return: An instance of JSONPath or XPath c
+    """
+    if not path:
+        raise ValueError("No path given")
+    if path[0] in ['$', '@']:
+        return JSONPath(path)
+    else:
+        if path[0] in ['.', '/']:
+            return XPath(path)
+        else:
+            raise ValueError("Couldn't identify the path type for {}".format(path))
+
+
+def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> Union[XMLNodeToJSONNode, JSONNodeToJSONNode]:
     """
     Parses a serialized JSON (Python dictionary) defining a Jsonize node map and creates its
     corresponding XMLNodeToJSONNode mapping.
@@ -273,13 +349,17 @@ def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> XML
     :param transformations: A list of Transformation from which the
     :return:
     """
-    from_xml_node = XMLNode(node_map['from']['path'], XMLNodeType(node_map['from']['type']))
-    to_json_node = JSONNode(node_map['to']['path'], JSONNodeType(node_map['to']['type']))
+    from_path_type = infer_path_type(node_map['from']['path'])
+    if isinstance(from_path_type, XPath):
+        from_node = XMLNode(node_map['from']['path'], XMLNodeType(node_map['from']['type']))
+    elif isinstance(from_path_type, JSONPath):
+        from_node = JSONNode(node_map['from']['path'], JSONNodeType(node_map['from']['type']))
+    to_node = JSONNode(node_map['to']['path'], JSONNodeType(node_map['to']['type']))
 
     try:
         unparsed_item_mappings = node_map['itemMappings']
         item_mappings = [parse_node_map(item_mapping, transformations)
-                         for item_mapping in unparsed_item_mappings]  # type: Optional[List[XMLNodeToJSONNode]]
+                         for item_mapping in unparsed_item_mappings]  # type: [List[XMLNodeToJSONNode]]
     except KeyError:
         item_mappings = None
     try:
@@ -296,14 +376,20 @@ def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> XML
     else:
         transformation = None
 
-    parsed_node_map = XMLNodeToJSONNode(from_xml_node=from_xml_node,
-                                        to_json_node=to_json_node,
-                                        item_mappings=item_mappings,
-                                        transform=transformation)
-    return parsed_node_map
+    if isinstance(from_path_type, XPath):
+        return XMLNodeToJSONNode(from_xml_node=from_node,
+                                 to_json_node=to_node,
+                                 item_mappings=item_mappings,
+                                 transform=transformation)
+    elif isinstance(from_path_type, JSONPath):
+        return JSONNodeToJSONNode(from_json_node=from_node,
+                                  to_json_node=to_node,
+                                  item_mappings=item_mappings,
+                                  transform=transformation)
 
 
-def parse(jsonize_map: List[Dict], transformations: Optional[List[Transformation]] = None) -> List[XMLNodeToJSONNode]:
+def parse(jsonize_map: List[Dict], transformations: Optional[List[Transformation]] = None) \
+        -> Union[List[XMLNodeToJSONNode], List[JSONNodeToJSONNode]]:
     """
     Produces a list of XMLNodeToJSONNode mappings from the Python serialization of a Jsonize map.
     A Jsonize map is defined as an instance of jsonize-map.schema.json.
@@ -352,7 +438,7 @@ def xml_document_to_dict(xml_document: Path,
                              '"jsonize_map_document" or "jsonize_map".')
 
         with jsonize_map_document.open('r') as jsonize_map_file:
-            jsonize_map = parse(load(jsonize_map_file), transformations)
+            jsonize_map: List[XMLNodeToJSONNode] = parse(load(jsonize_map_file), transformations)
 
     result = json
     xml_etree = xml_parse(str(xml_document))
@@ -399,7 +485,7 @@ def iter_map_xml_document_to_dict(xml_document: Path,
 
     for node in generate_nodes(xml_etree, xml_namespaces):
         jsonize_mapping = node.to_jsonize(attributes='_')
-        node_map = parse_node_map(jsonize_mapping, transformations=[])
+        node_map: XMLNodeToJSONNode = parse_node_map(jsonize_mapping, transformations=[])
         node_map.map(xml_etree, json, xml_namespaces=xml_namespaces, ignore_empty=ignore_empty)
         yield json
 
@@ -508,3 +594,73 @@ def infer_jsonize_map(xml_document: Path,
             dump(jsonized, output_file)
 
     return jsonized
+
+
+def json_document_to_dict(input_document: Path,
+                          jsonize_map_document: Optional[Path] = None,
+                          jsonize_map: Optional[Iterable[JSONNodeToJSONNode]] = None,
+                          json: Union[Dict, List] = None,
+                          transformations: Optional[Iterable[Transformation]] = None) -> Dict:
+    """
+    Applies a Jsonize map to a JSON document, returns a JSON serializable dictionary.
+    :param input_document: A Path to the input JSON document that is to be converted.
+    :param jsonize_map_document: Path to a JSON file defining the Jsonize map.
+    :param jsonize_map: An iterable of JSONNodeToJSONNode defining the Jsonize mapping.
+                        If provided it overrides the parameter jsonize_map_document.
+    :param json: An input dictionary into which the XML document is to be mapped.
+                 Defaults to an empty dictionary if none given.
+    :param transformations: An iterable of Transformation that contains the functions that are invoked
+                            in the Jsonize mapping.
+    :return: A (JSON serializable) Python dictionary containing the items defined in the mappings
+    extracted from the input_document.
+    """
+    transformations = transformations or []
+    json = json or {}
+
+    if not jsonize_map:
+        try:
+            assert jsonize_map_document is not None
+        except AssertionError:
+            raise ValueError('Jsonize map missing. Must be provided either via the parameter '
+                             '"jsonize_map_document" or "jsonize_map".')
+
+        with jsonize_map_document.open('r') as jsonize_map_file:
+            jsonize_map: List[JSONNodeToJSONNode] = parse(load(jsonize_map_file), transformations)
+
+    result = json
+    with input_document.open('r', encoding='utf-8') as input_file:
+        input_dict = load(input_file)
+
+    for mapping in jsonize_map:
+        result = mapping.map(input_dict, result)
+
+    return result
+
+
+def json_document_to_json_document(input_document: Path,
+                                   output_document: Path,
+                                   jsonize_map_document: Optional[Path] = None,
+                                   jsonize_map: Optional[Iterable[JSONNodeToJSONNode]] = None,
+                                   json: Union[Dict, List] = None,
+                                   transformations: Optional[Iterable[Transformation]] = None) -> None:
+    """
+    Transforms a JSON document into another JSON document based on the given Jsonize mapping
+    and saves it in the output_document Path.
+
+    :param input_document: A Path to the input JSON document that is to be converted.
+    :param output_document: A Path defining where to save the JSON document that results from the mapping.
+    :param jsonize_map_document: Path to a JSON file defining the Jsonize map.
+    :param jsonize_map: An iterable of JSONNodeToJSONNode defining the Jsonize mapping.
+                        If provided it overrides the parameter jsonize_map_document.
+    :param json: An input dictionary into which the XML document is to be mapped.
+                 Defaults to an empty dictionary if none given.
+    :param transformations: An iterable of Transformation that contains the functions that are invoked
+                            in the Jsonize mapping.
+    :return: None, the function is pure side-effects.
+    """
+    result = json_document_to_dict(input_document=input_document,
+                                   jsonize_map_document=jsonize_map_document, jsonize_map=jsonize_map,
+                                   json=json, transformations=transformations)
+
+    with output_document.open('w') as result_file:
+        result_file.write(dumps(result))
