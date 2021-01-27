@@ -37,7 +37,7 @@ from __future__ import annotations
 from pathlib import Path
 from json import load, dump, dumps
 from typing import Dict, List, Optional, Callable, Iterable, Union, Iterator, Any
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 import re
 
 from lxml.etree import parse as xml_parse
@@ -71,7 +71,7 @@ class Transformation:
         return self.transformation(input)
 
 
-class NodeMap(ABC):
+class NodeMap(metaclass=ABCMeta):
     """
     Abstract class defining a mapping between two nodes.
     This abstract class is realized in XMLNodeToJSONNode class, mapping an XMLNode to a JSONNode and
