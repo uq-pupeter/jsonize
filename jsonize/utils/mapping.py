@@ -600,7 +600,8 @@ def json_document_to_dict(input_document: Path,
                           jsonize_map_document: Optional[Path] = None,
                           jsonize_map: Optional[Iterable[JSONNodeToJSONNode]] = None,
                           json: Union[Dict, List] = None,
-                          transformations: Optional[Iterable[Transformation]] = None) -> Dict:
+                          transformations: Optional[Iterable[Transformation]] = None,
+                          ignore_empty: bool = True) -> Dict:
     """
     Applies a Jsonize map to a JSON document, returns a JSON serializable dictionary.
     :param input_document: A Path to the input JSON document that is to be converted.
@@ -611,6 +612,7 @@ def json_document_to_dict(input_document: Path,
                  Defaults to an empty dictionary if none given.
     :param transformations: An iterable of Transformation that contains the functions that are invoked
                             in the Jsonize mapping.
+    :param ignore_empty: A boolean indicating if missing values should be ignored.
     :return: A (JSON serializable) Python dictionary containing the items defined in the mappings
     extracted from the input_document.
     """
@@ -632,7 +634,7 @@ def json_document_to_dict(input_document: Path,
         input_dict = load(input_file)
 
     for mapping in jsonize_map:
-        result = mapping.map(input_dict, result)
+        result = mapping.map(input_dict, result, ignore_empty=ignore_empty)
 
     return result
 
@@ -642,7 +644,8 @@ def json_document_to_json_document(input_document: Path,
                                    jsonize_map_document: Optional[Path] = None,
                                    jsonize_map: Optional[Iterable[JSONNodeToJSONNode]] = None,
                                    json: Union[Dict, List] = None,
-                                   transformations: Optional[Iterable[Transformation]] = None) -> None:
+                                   transformations: Optional[Iterable[Transformation]] = None,
+                                   ignore_empty: bool = True) -> None:
     """
     Transforms a JSON document into another JSON document based on the given Jsonize mapping
     and saves it in the output_document Path.
@@ -656,11 +659,12 @@ def json_document_to_json_document(input_document: Path,
                  Defaults to an empty dictionary if none given.
     :param transformations: An iterable of Transformation that contains the functions that are invoked
                             in the Jsonize mapping.
+    :param ignore_empty: A boolean indicating if missing values should be ignored.
     :return: None, the function is pure side-effects.
     """
     result = json_document_to_dict(input_document=input_document,
                                    jsonize_map_document=jsonize_map_document, jsonize_map=jsonize_map,
-                                   json=json, transformations=transformations)
+                                   json=json, transformations=transformations, ignore_empty=ignore_empty)
 
     with output_document.open('w') as result_file:
         result_file.write(dumps(result))
