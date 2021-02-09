@@ -525,7 +525,7 @@ def xml_document_to_json_document(xml_document: Path,
                                   ignore_empty=ignore_empty)
 
     with json_document.open('w') as result_file:
-        result_file.write(dumps(result))
+        result_file.write(dumps(result, indent=4))
 
 
 def infer_jsonize_map(xml_document: Path,
@@ -667,4 +667,4 @@ def json_document_to_json_document(input_document: Path,
                                    json=json, transformations=transformations, ignore_empty=ignore_empty)
 
     with output_document.open('w') as result_file:
-        result_file.write(dumps(result))
+        result_file.write(dumps(result, indent=4))
