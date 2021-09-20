@@ -326,7 +326,7 @@ def infer_path_type(path: str) -> Union[XPath, JSONPath]:
     Infers the type of a path (XPath or JSONPath) based on its syntax.
     It performs some basic sanity checks to differentiate a JSONPath from an XPath.
     :param path: A valid XPath or JSONPath string.
-    :return: An instance of JSONPath or XPath c
+    :return: An instance of JSONPath or XPath
     """
     if not path:
         raise ValueError("No path given")
