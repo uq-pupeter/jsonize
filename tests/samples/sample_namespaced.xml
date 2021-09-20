@@ -154,25 +154,84 @@ Editorial note: this license is an instance of the BSD license template as provi
 	</aixm:messageMetadata>
 	<!-- new designated point GITUB -->
 	<message:hasMember>
-		<aixm:DesignatedPoint gml:id="uuid.008591e1-3173-42f3-bd7e-68be78c7d1cf">
-			<gml:identifier codeSpace="urn:uuid:">008591e1-3173-42f3-bd7e-68be78c7d1cf</gml:identifier>
+		<aixm:OrganisationAuthority gml:id="uuid.6384a4e0-8497-4f83-8eaa-d73ef549d90e">
+			<gml:identifier codeSpace="urn:uuid:">6384a4e0-8497-4f83-8eaa-d73ef549d90e</gml:identifier>
 			<aixm:timeSlice>
-				<aixm:DesignatedPointTimeSlice gml:id="DPN_GITUB_PD_3">
+				<aixm:OrganisationAuthorityTimeSlice gml:id="DONLONSTATE">
 					<gml:validTime>
-						<gml:TimeInstant gml:id="vtGITUB92PD_3">
-							<gml:timePosition>2019-12-05T00:00:00Z</gml:timePosition>
-						</gml:TimeInstant>
+						<gml:TimePeriod gml:id="vtDONLONSTATE">
+							<gml:beginPosition>2009-01-01T00:00:00Z</gml:beginPosition>
+							<gml:endPosition indeterminatePosition="unknown"></gml:endPosition>
+						</gml:TimePeriod>
 					</gml:validTime>
-					<aixm:interpretation>PERMDELTA</aixm:interpretation>
-					<aixm:sequenceNumber>3</aixm:sequenceNumber>
+					<aixm:interpretation>BASELINE</aixm:interpretation>
+					<aixm:sequenceNumber>1</aixm:sequenceNumber>
 					<aixm:featureLifetime>
-						<gml:TimePeriod gml:id="ltGITUB92_3">
-							<gml:beginPosition>2018-12-06T00:00:00Z</gml:beginPosition>
-							<gml:endPosition>2019-12-05T00:00:00Z</gml:endPosition>
+						<gml:TimePeriod gml:id="ltDONLONSTATE">
+							<gml:beginPosition>2009-01-01T00:00:00Z</gml:beginPosition>
+							<gml:endPosition indeterminatePosition="unknown"></gml:endPosition>
 						</gml:TimePeriod>
 					</aixm:featureLifetime>
-				</aixm:DesignatedPointTimeSlice>
+					<aixm:name>REPUBLIC OF DONLON</aixm:name>
+					<aixm:type>STATE</aixm:type>
+				</aixm:OrganisationAuthorityTimeSlice>
 			</aixm:timeSlice>
-		</aixm:DesignatedPoint>
+		</aixm:OrganisationAuthority>
+	</message:hasMember>
+	<message:hasMember>
+		<aixm:OrganisationAuthority gml:id="uuid.c225ae5c-540f-4a48-8867-809b393b2407">
+			<gml:identifier codeSpace="urn:uuid:">c225ae5c-540f-4a48-8867-809b393b2407</gml:identifier>
+			<aixm:timeSlice>
+				<aixm:OrganisationAuthorityTimeSlice gml:id="ORG_CAA">
+					<gml:validTime>
+						<gml:TimePeriod gml:id="rtvtOXS0">
+							<gml:beginPosition>2017-07-01T00:00:00Z</gml:beginPosition>
+							<gml:endPosition indeterminatePosition="unknown"></gml:endPosition>
+						</gml:TimePeriod>
+					</gml:validTime>
+					<aixm:interpretation>BASELINE</aixm:interpretation>
+					<aixm:sequenceNumber>2</aixm:sequenceNumber>
+					<aixm:featureLifetime>
+						<gml:TimePeriod gml:id="ltOXS118">
+							<gml:beginPosition>2017-07-01T00:00:00Z</gml:beginPosition>
+							<gml:endPosition indeterminatePosition="unknown"></gml:endPosition>
+						</gml:TimePeriod>
+					</aixm:featureLifetime>
+					<aixm:name>CIVIL AVIATION ADMINISTRATION</aixm:name>
+					<aixm:type>NTL_AUTH</aixm:type>
+					<aixm:relatedOrganisationAuthority>
+						<aixm:OrganisationAuthorityAssociation gml:id="CAATODONLONSTATE">
+							<aixm:type>OWNED_BY</aixm:type>
+							<aixm:theOrganisationAuthority xlink:href=",DanaInfo=mailservices.eurocontrol.int,SSL+urn:uuid:6384a4e0-8497-4f83-8eaa-d73ef549d90e" xlink:title="ORG_REPUBLIC OF DONLON"></aixm:theOrganisationAuthority>
+						</aixm:OrganisationAuthorityAssociation>
+					</aixm:relatedOrganisationAuthority>
+				</aixm:OrganisationAuthorityTimeSlice>
+			</aixm:timeSlice>
+		</aixm:OrganisationAuthority>
+	</message:hasMember>
+	<message:hasMember>
+		<aixm:OrganisationAuthority gml:id="uuid.1e1bdf59-3dd6-4f96-9166-e6095e7231fc">
+			<gml:identifier codeSpace="urn:uuid:">1e1bdf59-3dd6-4f96-9166-e6095e7231fc</gml:identifier>
+			<aixm:timeSlice>
+				<aixm:OrganisationAuthorityTimeSlice gml:id="ORGTSDONLON1">
+					<gml:validTime>
+						<gml:TimePeriod gml:id="rtvtOXS1">
+							<gml:beginPosition>2009-01-01T00:00:00Z</gml:beginPosition>
+							<gml:endPosition indeterminatePosition="unknown"></gml:endPosition>
+						</gml:TimePeriod>
+					</gml:validTime>
+					<aixm:interpretation>BASELINE</aixm:interpretation>
+					<aixm:sequenceNumber>1</aixm:sequenceNumber>
+					<aixm:featureLifetime>
+						<gml:TimePeriod gml:id="ltOXS119">
+							<gml:beginPosition>2009-01-01T00:00:00Z</gml:beginPosition>
+							<gml:endPosition indeterminatePosition="unknown"></gml:endPosition>
+						</gml:TimePeriod>
+					</aixm:featureLifetime>
+					<aixm:name>DONLON</aixm:name>
+					<aixm:type>NTL_AUTH</aixm:type>
+				</aixm:OrganisationAuthorityTimeSlice>
+			</aixm:timeSlice>
+		</aixm:OrganisationAuthority>
 	</message:hasMember>
 </message:AIXMBasicMessage>
