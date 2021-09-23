@@ -1,18 +1,19 @@
 # Jsonize
 
 ## Introduction
-Jsonize provides tools to convert an XML document into a JSON representation. Unlike most converters it allows to define a 
-finely tuned mapping that enables the user to control exactly how the output representation looks like, avoiding the usual problems of XML to JSON 
-conversion tools:
+Jsonize provides tools to work with and transform XML and JSON documents and map them to highly-tunable JSON representations. Jsonize differentiates itself 
+from most converters through its ability to define finely tunable mappings that enable the user to control exactly how the output representation
+looks like. Jsonize solves many of the common
+problems that plague similar conversion tools:
 
-- Forced conventions on how XML attributes and elements are mapped
-- Inability to cast the input values of an XML node into appropriate JSON types
-- Inability to apply any transformations or data manipulation
-- Inability to select which nodes of the XML are to be mapped
-- Inability to create JSON arrays as there is no corresponding data structure in XML
+- Forced conventions on how XML attributes and elements are mapped: Jsonize allows to define how XML attributes are treated.
+- Inability to cast the input values of an XML node into appropriate JSON types. Jsonize allows casting the input value into the chosen JSON basetype or inferring the best option.
+- Inability to apply any transformations or data manipulation: Jsonize allows to define custom transformations applied to each input value.
+- Inability to select which nodes of the XML are to be mapped: Jsonize allows to pick and choose the specific input nodes that will be mapped, which can greatly speed working with huge input documents.
+- Inability to create JSON arrays as there is no corresponding data structure in XML: Jsonize allows creating JSON arrays from XML sequences.
 
-Jsonize works around these problems by providing fine-grained control of the conversion, working with individual XML nodes mapped into JSON nodes. This allows the user to
-work like a surgeon selecting which elements or attributes of an XML file are mapped to JSON and how.
+Jsonize works around these problems by providing fine-grained control of the conversion, working with individual XML or JSON nodes mapped into JSON nodes. This allows the user to
+work like a surgeon selecting which nodes in an XML or JSON file are mapped to JSON and how.
 
 ## Installation
 
@@ -37,7 +38,7 @@ pip install git+https://github.com/eurocontrol-swim/jsonize@v0.0.2-alpha
 
 ## Usage
 
-The conversion is centered around the notion of a Jsonize mapping which defines exactly which XML nodes are to be mapped and how. 
+The conversion is centered around the notion of a Jsonize mapping which defines exactly which input nodes are to be mapped and how. 
 There are two ways to define the Jsonize mapping:
 
 - Using a statically defined JSON file
@@ -48,9 +49,9 @@ Both allow the same flexibility and the choice between using one or the other is
 ### Static mapping using a JSON file
 
 A Jsonize static mapping is defined using a JSON file that follows the [Jsonize Schema](https://github.com/eurocontrol-swim/jsonize/blob/master/jsonize/schema/jsonize-map.schema.json) 
-and consists of an array of XML node to JSON node mappings, represented in the JSON Schema with the `NodeMap` object.
+and consists of an array of node mappings, represented in the JSON Schema with the `NodeMap` object.
 
-A simple `NodeMap` object takes the following form:
+A simple `NodeMap` object that maps an XML attribute into a JSON value takes the following form:
 
 ```json
 {
@@ -65,10 +66,26 @@ A simple `NodeMap` object takes the following form:
 }
 ```
 
-The `from` attribute specifies the XML Node we are interested to map, it contains two sub-attributes:
-- `from.path`: specifies the XPath of the XML node we want to map
-- `from.type`: specifies the XML node type of the node we want to map, one of the following values `attribute`, `sequence`, `value`. Although this information 
-can be inferred in some cases from the XPath expression this is not always the case and thus has to be provided.
+A simple `NodeMap` object that maps a JSON node into a different JSON node takes the following form:
+
+```json
+{
+    "from": {
+      "path": "$.path.to.value",
+      "type": "number"
+    },
+    "to": {
+      "path": "$.another.path.to.value",
+      "type": "string"
+    }
+}
+```
+
+Notice how the this `NodeMap` is casting an input with type `number` input an output with type `string`. 
+
+The `from` attribute specifies the node we are interested to map, it contains two sub-attributes:
+- `from.path`: specifies the path (XPath or JSONPath) if the input we want to map
+- `from.type`: specifies the node type of the node we want to map. For XML input it can take one of the following values `attribute`, `sequence`, `value`. For a JSON input it can take one of the following values `string`, `number`, `array`, `boolean`.
 
 The `to` attribute specifies where we want to map it, it contains two sub-attributes:
 - `to.path`: specifies a JSONPath where we want it mapped
@@ -81,13 +98,13 @@ are mapped into JSON.
 There are two optional attributes in a `NodeMap` that have some special purpose:
  
  - `itemMappings`: Specifies an array of mappings that is to be applied to the `from` node, allowing us to build recursive mappings. 
- This has its use when the `type` of the XML node is either a `sequence` or `complexType` (currently not implemented). Using `itemMappings` we can specify a 
- number of `NodeMap` that will be applied to each element of an XML sequence to form each item in a JSON array or to an XML ComplexType to form the JSON object.
+ This has its use when the `type` of the input XML node is a `sequence`. Using `itemMappings` we can specify a 
+ number of `NodeMap` that will be applied to each element of an XML sequence to form each item in a JSON array.
 
- - `transformation`: Allows to specify by name a `Transformation` containing a Python function that we want to apply to the input node value before mapping it to JSON. 
- Any Python code can be invoked as long as it's wrapped in a function that takes a single parameter. It can be used for string manipulation, type casting...
+ - `transformation`: Allows specifying by name a `Transformation` containing a Python function that we want to apply to the input node value before mapping it to JSON. 
+ Any Python code can be invoked as long as it's wrapped in a function that takes a single parameter. It can be used for string manipulation, type casting, getting values from external sources (e.g., DB, API query...). Your imagination is the limit.
  
- Once our JSON file containing the Jsonize mapping is defined we can simply invoke the function `xml_document_to_json_document` passing the appropriate
+ Once our JSON file containing the Jsonize mapping is defined we can simply invoke the function `xml_document_to_json_document` or `json_document_to_json_document` passing the appropriate
  parameters and it will do the work for us. An example can be found in the [example folder](https://github.com/eurocontrol-swim/jsonize/blob/master/jsonize/example/). 
  This example is chosen to highlight various useful features of Jsonize: 
  
@@ -96,7 +113,7 @@ There are two optional attributes in a `NodeMap` that have some special purpose:
  - How to use the `itemMappings` attribute to build each item in a JSON array
  - How to invoke a `Transformation` to clean up some text
  
- #### Automatic generation of Jsonize mapping
+ #### Automatic generation of Jsonize mapping (XML)
  
  Manually generating a Jsonize mapping can be tiresome, especially for large XMLs. To avoid this pain the `infer_jsonize_map` helper function  will generate a Jsonize
  mapping for you. You can control a few conventions of the mapping via its parameters (check the documentation of the function for a detailed explanation):
@@ -137,6 +154,5 @@ to recursive mappings for XML complexTypes.
 - *Infer namespaces from XML files*: A basic functionality is included to find the namespaces of an XML, that looks into the XML root element. Unfortunately
 XML files can contain XML namespace definitions anywhere in the document. The function could be enlarged to find them anywhere in the document, since this process
 is computationally intensive a truncation strategy could be considered (e.g. look into the 100 first XML nodes and then stop.)
-- *JSON to JSON mappings*: Jsonize works from XML to JSON but nothing stops this framework from being extended to handle JSON to JSON mappings.
 - *Blacklisting*: `infer_jsonize_map` could take blacklisting instructions (e.g. by pattern matching name via regex) and ignore XML nodes that
 match the pattern. This would give a powerful way to automatically generate Jsonize mappings that do not contain stuff we are not interested in.
