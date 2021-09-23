@@ -533,8 +533,7 @@ def infer_jsonize_map(xml_document: Path,
                       xml_namespaces: Optional[Dict[str, str]] = None,
                       value_tag: str = 'value',
                       attribute_tag: str = '',
-                      with_namespaces: bool = True,
-                      strict_type: bool = False) -> List[Dict[str, Dict[str, str]]]:
+                      with_namespaces: bool = True) -> List[Dict[str, Dict[str, str]]]:
     """
     This function will infer a Jsonize map for a given input xml_document. It does so by applying
     certain conventions of how to map XML nodes into JSON:
