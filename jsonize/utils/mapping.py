@@ -347,7 +347,7 @@ def parse_node_map(node_map: Dict, transformations: List[Transformation]) -> Uni
     :param node_map: A dictionary containing the serialized representation of a JSON NodeMap as
                      specified in Jsonize Schema.
     :param transformations: A list of Transformation from which the
-    :return:
+    :return: An instance of XMLNodeToJSONNode or JSONNodeToJSONNode with the NodeMap definition.
     """
     from_path_type = infer_path_type(node_map['from']['path'])
     if isinstance(from_path_type, XPath):
@@ -570,9 +570,9 @@ def infer_jsonize_map(xml_document: Path,
     -- Input: <ns:element attrib="hi">42</ns:element>
     -- Output: {'element': {'attrib': 'hi', 'value': 42}}
 
-    :param xml_document:
-    :param output_map:
-    :param xml_namespaces:
+    :param xml_document: A Path to the XML document which we want to create a Jsonize map.
+    :param output_map: A Path to where the JSON file with Jsonize map is to be stored.
+    :param xml_namespaces: Dictionary containing the definition of the namespaces used in the XML document.
     :param value_tag: Specifies the key name of XML element values, it defaults to the string
     'value'
     :param attribute_tag: Specifies a string to prepend in the key name of XML attribute values,
