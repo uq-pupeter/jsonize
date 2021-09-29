@@ -36,12 +36,15 @@ Details on EUROCONTROL: http://www.eurocontrol.int
 from __future__ import annotations
 
 from enum import Enum
-from copy import deepcopy
 from typing import Dict, Any, Union, List
+import logging
 
 from pyparsing import nums, Word, Optional, Literal, Group, ParseResults
 
 __author__ = "EUROCONTROL (SWIM)"
+
+
+logger = logging.getLogger(__name__)
 
 
 class JSONPath():
@@ -262,6 +265,47 @@ def get_item_from_json_path(path: JSONPath, json: Union[Dict, List]) -> Any:
     return current_item
 
 
+def _write_item_in_array(item: Any, in_path: JSONPath, json: Union[Dict, List]) -> Union[Dict, List]:
+    if isinstance(in_path.json_path_structure[-1], slice):
+        raise ValueError('Writing on list slice is not supported.', in_path)
+    if not isinstance(in_path.json_path_structure[-1], int):
+        raise ValueError(f"Cannot write item into array, {in_path} doesn't point to an array entry.", in_path)
+    array_path, relative_path = in_path.split(-1)
+    array = get_item_from_json_path(array_path, json)
+    if array is None:
+        array = []
+    array_length = len(array)
+    if in_path.json_path_structure[-1] == -1:
+        array.append(item)
+    elif in_path.json_path_structure[-1] < -1 or in_path.json_path_structure[-1] > array_length:
+        raise IndexError(f"Cannot write item into array, {in_path} index is out of bounds.")
+    else:
+        array.insert(in_path.json_path_structure[-1], item)
+    return json
+
+
+def _write_item_in_dict(item: Any, in_path: JSONPath, json: Union[Dict, List]) -> Union[Dict, List]:
+    item_key = in_path.json_path_structure[-1]
+    if not isinstance(item_key, str):
+        raise ValueError(f"Cannot write item into dictionary, {in_path} doesn't point to a dictionary key.")
+    parent_path, relative_path = in_path.split(-1)
+
+    parent = get_item_from_json_path(parent_path, json)
+    if item_key in parent.keys():
+        logger.debug(f"Item at {in_path} already exists. Overwriting it.")
+    parent.update({in_path.json_path_structure[-1]: item})
+    return json
+
+def _write_item_in_path(item: Any, in_path: JSONPath) -> Union[Dict, List]:
+    for key in reversed(in_path.json_path_structure[1:]):
+        if isinstance(key, str):
+            item = {key: item}
+        elif isinstance(key, int):
+            item = [item]
+
+    return item
+
+
 def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, None]) -> Dict:
     """
     Attempts to write the given item at the JSONPath location. If an item already exists in the
@@ -276,50 +320,115 @@ def write_item_in_path(item: Any, in_path: JSONPath, json: Union[Dict, List, Non
     """
     if json is None:
         if len(in_path.json_path_structure) == 1:
-            json_copy = []
-        elif len(in_path.json_path_structure) == 2 and isinstance(in_path.json_path_structure[1], int):
-            json_copy = []
+            return item
+        elif isinstance(in_path.json_path_structure[1], int):
+            json = []
         else:
-            json_copy = {}
-    else:
-        json_copy = deepcopy(json)
+            json = {}
+
     parent_path, item_relative_path = in_path.split(-1)
     item_key = item_relative_path.json_path_structure[-1]
 
-    # If the parent item doesnt exist we iteratively create a path of empty items until we get to
-    # the parent
     try:
-        parent_item = get_item_from_json_path(parent_path, json_copy)
-    except (KeyError, TypeError, IndexError) as e:
-        error_at_path = e.args[1]  # type: JSONPath
-        item_key = error_at_path.json_path_structure[-1]
+        parent_item = get_item_from_json_path(parent_path, json)
+        if isinstance(parent_item, dict):
+            _write_item_in_dict(item, in_path, json)
 
-        if isinstance(item_key, int):
-            json_copy = write_item_in_path([], error_at_path, json_copy)
-        elif isinstance(item_key, str):
-            json_copy = write_item_in_path({}, error_at_path, json_copy)
-        elif isinstance(item_key, slice):
-            raise ValueError('Writing on list slice is not supported.', in_path)
-
-        return write_item_in_path(item, in_path, json_copy)
-
-    if isinstance(parent_item, dict):
-        if isinstance(item_key, str):
-            parent_item.update({item_key: item})
+        elif isinstance(parent_item, list):
+            _write_item_in_array(item, in_path, json)
         else:
-            raise ValueError('Cannot write in a dictionary using integer key.')
+            raise TypeError('Cannot write item in path: ', parent_path)
+        return json
+    except (KeyError, TypeError, IndexError) as e:
+        # If the parent item doesnt exist we iteratively create a path of empty items until we get to
+        # the parent
+        error_at_path: JSONPath = e.args[1]
+        logger.debug(f"Path at {error_at_path} doesn't exist.")
+        missing_path = in_path.split(at=len(error_at_path.json_path_structure))[1]
+        logger.debug(f"Creating missing path: {missing_path}")
 
-    elif isinstance(parent_item, list):
-        if isinstance(item_key, slice):
-            raise ValueError('Writing on a list slice is not supported.')
-        elif isinstance(item_key, str):
-            parent_item.append({item_key: item})
-        elif isinstance(item_key, int):
-            if item_key >= 0:
-                parent_item.insert(item_key, item)
-            else:
-                parent_item.insert(len(parent_item) + 2, item)
-    else:
-        raise TypeError('Cannot write item in path: ', parent_path)
+        missing_item = _write_item_in_path(item, missing_path)
+        return write_item_in_path(missing_item, error_at_path, json)
 
-    return json_copy
+
+def str_is_int(value: str) -> bool:
+    """
+
+    :param value:
+    :return:
+    """
+    if not value or isinstance(value, bool):
+        return False
+
+    if value[0] in ['-', '+']:
+        value = value[1:]
+
+    return value.isdigit()
+
+
+def str_is_float(value: str) -> bool:
+    """
+
+    :param value:
+    :return:
+    """
+    if not value or isinstance(value, bool):
+        return False
+
+    if value[0] in ['-', '+']:
+        value = value[1:]
+
+    if value.lower() in ['nan', 'infinity', 'inf']:
+        return False
+
+    try:
+        float(value)
+    except ValueError:
+        return False
+
+    return True
+
+
+def str_is_bool(value: str) -> bool:
+    """
+
+    :param value:
+    :return:
+    """
+    return value.lower() in ['true', 'false']
+
+
+def infer_json_type(value: Union[Dict, List, str, float, int, None, bool]) -> JSONNodeType:
+    """
+    Infers the most apt JSONNodeType of some input value.
+    :param value: An value value for which we want to infer the JSONNodeType.
+    :return: An enum value of JSONNodeType with the best fitting type.
+    """
+    if value is None:
+        return JSONNodeType.NULL
+
+    if isinstance(value, Dict):
+        return JSONNodeType.OBJECT
+
+    if isinstance(value, List):
+        return JSONNodeType.ARRAY
+
+    if isinstance(value, str):
+        if str_is_bool(value):
+            return JSONNodeType.BOOLEAN
+
+        if str_is_float(value):
+            return JSONNodeType.NUMBER
+
+        if str_is_int(value):
+            return JSONNodeType.INTEGER
+
+        return JSONNodeType.STRING
+
+    if isinstance(value, float):
+        return JSONNodeType.INTEGER if value.is_integer() else JSONNodeType.NUMBER
+
+    if isinstance(value, bool):
+        return JSONNodeType.BOOLEAN
+
+    raise ValueError('Unable to infer JSON type for {}'.format(value))
