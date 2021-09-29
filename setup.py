@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="jsonize",
-    version="0.0.2",
+    version="0.1.0",
     author="EUROCONTROL (SWIM)",
     author_email="francisco-javier.crabiffosse.ext@eurocontrol.int",
     description="A simple library to convert XML documents into JSON",
