@@ -3,16 +3,15 @@
 ## Introduction
 Jsonize provides tools to work with and transform XML and JSON documents and map them to highly-tunable JSON representations. Jsonize differentiates itself 
 from most converters through its ability to define finely tunable mappings that enable the user to control exactly how the output representation
-looks like. Jsonize solves many of the common
-problems that plague similar conversion tools:
+looks like. Jsonize solves many of the common problems that plague similar conversion tools:
 
 - Forced conventions on how XML attributes and elements are mapped: Jsonize allows to define how XML attributes are treated.
-- Inability to cast the input values of an XML node into appropriate JSON types. Jsonize allows casting the input value into the chosen JSON basetype or inferring the best option.
+- Inability to cast the input values of an XML node into appropriate JSON types: Jsonize allows casting the input value into the chosen JSON basetype or inferring the best option.
 - Inability to apply any transformations or data manipulation: Jsonize allows to define custom transformations applied to each input value.
-- Inability to select which nodes of the XML are to be mapped: Jsonize allows to pick and choose the specific input nodes that will be mapped, which can greatly speed working with huge input documents.
-- Inability to create JSON arrays as there is no corresponding data structure in XML: Jsonize allows creating JSON arrays from XML sequences.
+- Inability to select which nodes of the input XML/JSON are to be mapped: Jsonize allows to pick and choose the specific input nodes that will be mapped, which can greatly speed working with huge input documents.
+- Inability to create JSON arrays from input XML sequences: Jsonize naturally creates JSON arrays from XML sequences.
 
-Jsonize works around these problems by providing fine-grained control of the conversion, working with individual XML or JSON nodes mapped into JSON nodes. This allows the user to
+Jsonize works around these problems by providing fine-grained control of the conversion, working with individual XML or JSON nodes which can be mapped into JSON nodes. This allows the user to
 work like a surgeon selecting which nodes in an XML or JSON file are mapped to JSON and how.
 
 ## Installation
@@ -66,6 +65,8 @@ A simple `NodeMap` object that maps an XML attribute into a JSON value takes the
 }
 ```
 
+That's it! Just define the input node with `from` by defining its `path` and `type` and map it somewhere in the ouput JSON structure with `to`.
+
 A simple `NodeMap` object that maps a JSON node into a different JSON node takes the following form:
 
 ```json
@@ -81,7 +82,7 @@ A simple `NodeMap` object that maps a JSON node into a different JSON node takes
 }
 ```
 
-Notice how the this `NodeMap` is casting an input with type `number` input an output with type `string`. 
+Notice how the this `NodeMap` is casting an input with type `number` to an output with type `string`. This will cast the value `34.3` to the value `"34.3"`
 
 The `from` attribute specifies the node we are interested to map, it contains two sub-attributes:
 - `from.path`: specifies the path (XPath or JSONPath) if the input we want to map
