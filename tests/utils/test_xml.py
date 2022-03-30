@@ -3,7 +3,7 @@ from jsonize.utils.xml import XPath, XMLNode, XMLNodeType, XMLSequenceNode, XMLN
     get_short_namespace, find_namespaces, generate_node_xpaths
 from jsonize.utils.json import JSONPath
 from pathlib import Path
-from lxml.etree import parse as xml_parse
+from lxml import etree
 
 
 class TestNamespaceSubstitution(unittest.TestCase):
@@ -375,10 +375,54 @@ class TestXMLNodeManipulations(unittest.TestCase):
                              )
 
 
+sample_no_namespace = """<?xml version="1.0"?>
+<catalog>
+   <book id="bk101">
+      <author>Gambardella, Matthew</author>
+      <title>XML Developer's Guide</title>
+      <genre>Computer</genre>
+      <price>44.95</price>
+      <publish_date>2000-10-01</publish_date>
+      <description>An in-depth look at creating applications
+      with XML.</description>
+   </book>
+   <book id="bk102">
+      <author>Ralls, Kim</author>
+      <title>Midnight Rain</title>
+      <genre>Fantasy</genre>
+      <price>5.95</price>
+      <publish_date>2000-12-16</publish_date>
+      <description>A former architect battles corporate zombies,
+      an evil sorceress, and her own childhood to become queen
+      of the world.</description>
+   </book>
+</catalog>
+"""
+
+
+sample_namespaced = """<?xml version="1.0"?>
+<message:AIXMBasicMessage xmlns:message="http://www.aixm.aero/schema/5.1.1/message"
+	xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:gco="http://www.isotc211.org/2005/gco"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:gml="http://www.opengis.net/gml/3.2"
+	xmlns:gss="http://www.isotc211.org/2005/gss" xmlns:aixm="http://www.aixm.aero/schema/5.1.1"
+	xmlns:gsr="http://www.isotc211.org/2005/gsr" xmlns:gmd="http://www.isotc211.org/2005/gmd"
+	xmlns:xlink="http://www.w3.org/1999/xlink"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.aixm.aero/schema/5.1.1/message http://www.aixm.aero/schema/5.1.1/message/AIXM_BasicMessage.xsd"	gml:id="M0000001">
+	<gml:boundedBy>
+		<gml:Envelope srsName="urn:ogc:def:crs:EPSG::4326">
+			<gml:lowerCorner>-32.0886111111111 -47.0</gml:lowerCorner>
+			<gml:upperCorner>57.690815969999996 52.4283333333333</gml:upperCorner>
+		</gml:Envelope>
+	</gml:boundedBy>
+</message:AIXMBasicMessage>
+"""
+
 class TestFindNamespaces(unittest.TestCase):
 
     def test_exist_namespaces(self):
-        xml_tree = xml_parse(str(Path('../samples/sample_namespaced.xml')))
+        root = etree.fromstring(sample_namespaced)
+        xml_tree = etree.ElementTree(root)
         xml_namespaces = {'message': 'http://www.aixm.aero/schema/5.1.1/message', 'gts': 'http://www.isotc211.org/2005/gts',
                           'gco': 'http://www.isotc211.org/2005/gco', 'xsd': 'http://www.w3.org/2001/XMLSchema',
                           'gml': 'http://www.opengis.net/gml/3.2', 'gss': 'http://www.isotc211.org/2005/gss',
@@ -388,7 +432,8 @@ class TestFindNamespaces(unittest.TestCase):
         self.assertEqual(find_namespaces(xml_tree), xml_namespaces)
 
     def test_no_namespaces(self):
-        xml_tree = xml_parse(str(Path('../samples/sample_no_namespace.xml')))
+        root = etree.fromstring(sample_no_namespace)
+        xml_tree = etree.ElementTree(root)
         xml_namespaces = {}
         self.assertEqual(find_namespaces(xml_tree), xml_namespaces)
 
@@ -396,7 +441,8 @@ class TestFindNamespaces(unittest.TestCase):
 class TestXPathGeneration(unittest.TestCase):
 
     def test_node_xpaths(self):
-        xml_tree = xml_parse(str(Path('../samples/sample_no_namespace.xml')))
+        root = etree.fromstring(sample_no_namespace)
+        xml_tree = etree.ElementTree(root)
         xpath_set = {XPath('/catalog/book[1]'),
                      XPath('/catalog/book[1]/@id'), XPath('/catalog/book[1]/author'), XPath('/catalog/book[1]/title'), XPath('/catalog/book[1]/genre'),
                      XPath('/catalog/book[1]/price'), XPath('/catalog/book[1]/publish_date'), XPath('/catalog/book[1]/description'),
