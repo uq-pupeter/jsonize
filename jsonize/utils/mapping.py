@@ -278,6 +278,8 @@ class XMLNodeToJSONNode(NodeMap):
         if not input and ignore_empty:
             return json
         else:
+            if self.transform:
+                input = self.transform(input)
             return self._map_input(input, json, ignore_empty)
 
 
